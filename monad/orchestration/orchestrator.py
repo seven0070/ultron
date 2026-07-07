@@ -89,6 +89,9 @@ class MultiModelOrchestrator:
         t0 = time.perf_counter()
         self._last_prompt = request.text          # used by cascade/single helpers
 
+        # Optional cognition pre-pass — adds memory hits + organ hints to the prompt
+        cognition_enrichment = self._cognition_enrich(request.text)
+
         intent = self.classifier.classify(request.text)
         strat_name = strategy_override or self._select_strategy(intent)
         strategy = STRATEGY_REGISTRY.get(strat_name)
@@ -104,13 +107,19 @@ class MultiModelOrchestrator:
             models_invoked=plan.models[:],
         )
 
+        # Enriched prompt = original + cognition context
+        prompt = request.text
+        if cognition_enrichment:
+            prompt = cognition_enrichment + "\n\n" + prompt
+            trace.metadata = trace.metadata if hasattr(trace, "metadata") else {}
+
         # Execute
         if plan.mode == ExecutionMode.SINGLE:
-            results = [self._run_single(plan, request.text)]
+            results = [self._run_single(plan, prompt)]
         elif plan.mode == ExecutionMode.PARALLEL:
-            results = self._run_parallel(plan, request.text)
+            results = self._run_parallel(plan, prompt)
         elif plan.mode == ExecutionMode.CASCADE:
-            results, escalated = self._run_cascade(plan, request.text)
+            results, escalated = self._run_cascade(plan, prompt)
             trace.escalated = escalated
         else:
             raise ValueError(f"Unknown execution mode: {plan.mode}")
@@ -192,3 +201,31 @@ class MultiModelOrchestrator:
     def handle_text(self, text: str, strategy_override: str = "") -> tuple[Response, OrchestrationTrace]:
         """Convenience wrapper for callers that only have a raw string."""
         return self.handle(Request(text=text), strategy_override=strategy_override)
+
+    # -- optional cognition pre-pass -----------------------------------------
+
+    def attach_cognition(self, cognitive_monad) -> None:
+        """Wire a `monad.cognition.Monad` instance in as a pre-pass."""
+        self._cognition = cognitive_monad
+
+    def _cognition_enrich(self, prompt: str) -> str:
+        """If cognition is attached, run .think() and produce a compact context header."""
+        cog = getattr(self, "_cognition", None)
+        if cog is None:
+            return ""
+        try:
+            cycle = cog.think(prompt)
+        except Exception as e:
+            log.debug("cognition pre-pass failed: {}", e)
+            return ""
+        parts = []
+        if cycle.memory_hits:
+            parts.append("[relevant memory]")
+            for h in cycle.memory_hits[:3]:
+                text = h.get("text", "") if isinstance(h, dict) else str(h)
+                parts.append(f"  - {text[:150]}")
+        if cycle.activated_organs:
+            parts.append(f"[cognitive lenses: {', '.join(cycle.activated_organs[:6])}]")
+        if cycle.decision and cycle.decision.get("winning_organs"):
+            parts.append(f"[executive suggests: {', '.join(cycle.decision['winning_organs'])}]")
+        return "\n".join(parts) if parts else ""

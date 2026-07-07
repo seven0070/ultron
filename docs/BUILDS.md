@@ -38,6 +38,13 @@ Monad is built in ~120 small, testable milestones. One PR per milestone.
 | **017c** | **Cognitive Architecture — 82 canonical organs** (from user spec) | ✅ **Complete** |
 | **017d** | **MonadMCPServer** (monad_recall, monad_organ_analyze, monad_self_model_query) | ✅ **Complete** |
 | **017e** | **ModelRouter with real IDs** (Mistral Small 3, DeepSeek R1, Claude Haiku/Opus) | ✅ **Complete** |
+| **017f** | **Cognition → Orchestrator wiring** (`monad ask --cognition`) | ✅ **Complete** |
+| **026** | **Real memory layer** (SQLite + ChromaDB with fallback + RRF hybrid retrieval) | ✅ **Complete** |
+| **036** | **Filesystem tool** (sandboxed to workspace/) | ✅ **Complete** |
+| **037** | **Python sandbox tool** (subprocess + timeout + isolated env) | ✅ **Complete** |
+| **038** | **Terminal tool** (allowlisted commands only) | ✅ **Complete** |
+| **039** | **HTTP tool** (SSRF-protected, size-capped) | ✅ **Complete** |
+| **056** | **Real PolicyGate** (allow/deny/prompt modes + SQLite audit log) | ✅ **Complete** |
 | 018 | Streaming output from orchestrator | ⏳ |
 | 019 | Role-specific prompt templates | ⏳ |
 | 020 | Adaptive strategy selection (learn from usage) | ⏳ |

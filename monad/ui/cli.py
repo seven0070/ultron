@@ -373,6 +373,8 @@ def ask(
     strategy: str = typer.Option("", "--strategy", "-s",
         help="Force strategy: auto|domain_routing|cascade|mixture_of_agents|verification|ensemble"),
     trace: bool = typer.Option(False, "--trace", help="Show orchestration trace."),
+    cognition: bool = typer.Option(False, "--cognition", "-c",
+        help="Run cognition pre-pass (memory + organs) before LLM."),
 ) -> None:
     """Multi-model orchestrated ask (Build #017) — routes to the right model(s)."""
     from monad.inference import InferenceManager, LlamaCppProvider
@@ -403,6 +405,15 @@ def ask(
         max_workers=cfg.get("orchestration.max_workers", 3) if cfg else 3,
     )
 
+    if cognition:
+        try:
+            from monad.cognition import Monad, MonadConfig
+            cog = Monad(MonadConfig(max_organs_per_cycle=4))
+            orch.attach_cognition(cog)
+            console.print("[dim]🧠 cognition pre-pass attached[/dim]")
+        except Exception as e:
+            console.print(f"[yellow]cognition pre-pass unavailable: {e}[/yellow]")
+
     try:
         response, tr = orch.handle_text(prompt, strategy_override=strategy)
     except Exception as e:
@@ -428,6 +439,61 @@ def ask(
         for i, pr in enumerate(tr.proposer_results, 1):
             console.print(f"  [{i}] {pr['model']:12} conf={pr['confidence']} "
                           f"lat={pr['latency_ms']}ms ok={pr['ok']}")
+
+
+@app.command()
+def tools() -> None:
+    """List available tools (Build #036)."""
+    from monad.tools import default_registry
+    reg = default_registry(workspace_dir=Path.cwd() / "workspace")
+    tbl = Table(title="Tools", border_style="cyan")
+    tbl.add_column("ID", style="bold")
+    tbl.add_column("Name")
+    tbl.add_column("Action")
+    tbl.add_column("Needs approval")
+    for t in reg.list():
+        tbl.add_row(t.id, t.name, t.action, "✔" if t.requires_approval else "✘")
+    console.print(tbl)
+
+
+@app.command()
+def memory(
+    op: str = typer.Argument(..., help="remember | recall | forget | size"),
+    text: str = typer.Argument("", help="Text to remember / query / forget."),
+    top_k: int = typer.Option(5, "--top-k", "-k"),
+) -> None:
+    """SQLite + vector memory operations (Build #026)."""
+    from monad.memory import Memory
+    apporch = _boot()
+    m = Memory(memory_dir=apporch.resources.memory_dir if apporch.resources
+               else Path.cwd() / "memory_data")
+    if op == "remember":
+        if not text:
+            console.print("[red]need text to remember[/red]")
+            raise typer.Exit(1)
+        eid = m.remember(text, kind="note", tag="cli")
+        console.print(f"[green]✔ remembered as event-{eid}[/green]")
+    elif op == "recall":
+        if not text:
+            console.print("[red]need query text[/red]")
+            raise typer.Exit(1)
+        hits = m.recall(text, top_k=top_k)
+        if not hits:
+            console.print("[dim]no results[/dim]")
+        for h in hits:
+            console.print(f"  [{h.score:.3f}] [dim]{h.source:8}[/dim] {h.text[:200]}")
+    elif op == "forget":
+        if not text:
+            console.print("[red]need needle to forget[/red]")
+            raise typer.Exit(1)
+        n = m.forget(text)
+        console.print(f"[yellow]forgot {n} event(s)[/yellow]")
+    elif op == "size":
+        import json as _json
+        console.print(_json.dumps(m.size(), indent=2))
+    else:
+        console.print(f"[red]unknown op:[/red] {op}")
+        raise typer.Exit(1)
 
 
 @app.command()

@@ -157,6 +157,10 @@ Monad is being built in **~120 small, testable milestones**.
 | **Multi-model orchestration** (5 strategies + confidence scoring) | **#017** | ✅ **Complete** |
 | **llama.cpp perf upgrades** (speculative decoding, KV quant, flash attn) | **#017b** | ✅ **Complete** |
 | **Cognitive architecture** (9 layers, 82 canonical organs, Cognee, MCP) | **Phases 1-6** | ✅ **Complete** |
+| **Real memory layer** (SQLite + ChromaDB + RRF hybrid retrieval) | **#026** | ✅ **Complete** |
+| **Tool framework** (Filesystem, Python sandbox, Terminal, HTTP) | **#036–#039** | ✅ **Complete** |
+| **Real policy gate** (allow/deny/prompt + SQLite audit) | **#056** | ✅ **Complete** |
+| **Cognition→Orchestrator wiring** (`monad ask --cognition`) | **#017f** | ✅ **Complete** |
 | Streaming, adaptive routing, caching | #018–#025 | 🚧 Stubs |
 | Memory & retrieval | #026–#035 | 🚧 Stubs |
 | Tool framework | #036–#055 | 🚧 Stubs |
