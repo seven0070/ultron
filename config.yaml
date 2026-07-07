@@ -57,8 +57,25 @@ logging:
 # Router / Intent classification (Build #014)
 # -----------------------------------------------------------------------------
 router:
-  strategy: "single_model"     # single_model | multi_model (Build #017+)
+  strategy: "single_model"     # single_model | multi_model
   intent_classifier: "rules"   # rules | llm-based (future)
+
+# -----------------------------------------------------------------------------
+# Multi-model orchestration (Build #017)
+# -----------------------------------------------------------------------------
+orchestration:
+  enabled: true
+  # "auto" chooses per intent; or force one:
+  #   domain_routing | cascade | mixture_of_agents | verification | ensemble
+  default_strategy: "auto"
+  max_workers: 3               # parallel proposer threads
+  # Map role -> model id (must match models.yaml entries)
+  model_pool:
+    reasoning: "longcat2"
+    coding: "glm5"
+    creative: "llama2"
+  # Cascade escalation threshold (0.0–1.0)
+  cascade_threshold: 0.55
 
 # -----------------------------------------------------------------------------
 # Chat engine (Build #013)

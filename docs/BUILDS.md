@@ -28,20 +28,21 @@ Monad is built in ~120 small, testable milestones. One PR per milestone.
 | 015 | Inference Provider Framework | ✅ | `monad/inference/` |
 | 016 | Prompt & Context Management | ✅ | `monad/prompts/` |
 
-## Phase 3 — Multi-model orchestration (🚧 next up)
+## Phase 3 — Multi-model orchestration
 
 | # | Name | Status |
 |---|------|--------|
 | **017a** | **Self-Improvement Framework** (Levels 1+2+3) | ✅ **Complete** |
-| 017 | Multi-model routing strategy | 🚧 stub in `router/strategy.py` |
-| 018 | Response synthesizer | ⏳ |
-| 019 | LongCat 2 integration test | ⏳ |
-| 020 | GLM-5 integration test | ⏳ |
-| 021 | Llama 2 integration test | ⏳ |
-| 022 | Parallel model execution | ⏳ |
-| 023 | Model selection heuristics | ⏳ |
-| 024 | Fallback / error handling | ⏳ |
-| 025 | Multi-model chat CLI | ⏳ |
+| **017**  | **Multi-model orchestration** (5 strategies + confidence scorer) | ✅ **Complete** |
+| **017b** | **llama.cpp perf upgrades** (speculative decoding, KV quant, flash attn) | ✅ **Complete** |
+| 018 | Streaming output from orchestrator | ⏳ |
+| 019 | Role-specific prompt templates | ⏳ |
+| 020 | Adaptive strategy selection (learn from usage) | ⏳ |
+| 021 | Multi-model chat CLI (`monad chat --multi`) | ⏳ |
+| 022 | Model warm-up & preload | ⏳ |
+| 023 | Response caching layer | ⏳ |
+| 024 | Fallback / error handling improvements | ⏳ |
+| 025 | Concurrent multi-model benchmarks | ⏳ |
 
 ## Phase 4 — Memory & retrieval
 

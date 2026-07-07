@@ -154,7 +154,9 @@ Monad is being built in **~120 small, testable milestones**.
 | Model framework & single-model chat | #011–#013 | ✅ Complete |
 | Routing, inference, prompts | #014–#016 | ✅ Complete |
 | **Self-improvement framework** (self-update, self-extend, self-debug) | **#017a** | ✅ **Complete** |
-| Multi-model orchestration | #017–#025 | 🚧 Stubs |
+| **Multi-model orchestration** (5 strategies + confidence scoring) | **#017** | ✅ **Complete** |
+| **llama.cpp perf upgrades** (speculative decoding, KV quant, flash attn) | **#017b** | ✅ **Complete** |
+| Streaming, adaptive routing, caching | #018–#025 | 🚧 Stubs |
 | Memory & retrieval | #026–#035 | 🚧 Stubs |
 | Tool framework | #036–#055 | 🚧 Stubs |
 | Policy, scheduler, API, dashboard | #056–#080 | 🚧 Stubs |

@@ -365,3 +365,85 @@ def chat() -> None:
     ))
     engine = ChatEngine(app=apporch)
     engine.run_cli(console)
+
+
+@app.command()
+def ask(
+    prompt: str = typer.Argument(..., help="Your question or request."),
+    strategy: str = typer.Option("", "--strategy", "-s",
+        help="Force strategy: auto|domain_routing|cascade|mixture_of_agents|verification|ensemble"),
+    trace: bool = typer.Option(False, "--trace", help="Show orchestration trace."),
+) -> None:
+    """Multi-model orchestrated ask (Build #017) — routes to the right model(s)."""
+    from monad.inference import InferenceManager, LlamaCppProvider
+    from monad.models import ModelManager
+    from monad.orchestration import MultiModelOrchestrator
+
+    apporch = _boot()
+    root = Path.cwd()
+
+    # Ensure model registry is loaded
+    mm = ModelManager()
+    if len(mm.list_models()) == 0:
+        mm.load_registry(root / "models.yaml", root / "models")
+
+    im = InferenceManager()
+    if "llama_cpp" not in im.list():
+        im.register(LlamaCppProvider(), default=True)
+
+    cfg = apporch.config
+    pool = cfg.get("orchestration.model_pool", {}) if cfg else {}
+    default_strategy = cfg.get("orchestration.default_strategy", "auto") if cfg else "auto"
+
+    orch = MultiModelOrchestrator(
+        inference_manager=im,
+        model_manager=mm,
+        model_pool=pool,
+        default_strategy=default_strategy,
+        max_workers=cfg.get("orchestration.max_workers", 3) if cfg else 3,
+    )
+
+    try:
+        response, tr = orch.handle_text(prompt, strategy_override=strategy)
+    except Exception as e:
+        console.print(f"[red]Orchestration failed:[/red] {e}")
+        raise typer.Exit(1)
+
+    console.print(Panel(response.text or "[dim](empty)[/dim]",
+                        title=f"🧠 Monad ({tr.final_model or 'no-model'})",
+                        border_style="magenta"))
+
+    if trace:
+        tbl = Table(title="Orchestration Trace", border_style="cyan")
+        tbl.add_column("Field", style="bold")
+        tbl.add_column("Value")
+        tbl.add_row("Intent", tr.intent)
+        tbl.add_row("Strategy", tr.strategy)
+        tbl.add_row("Models invoked", ", ".join(tr.models_invoked))
+        tbl.add_row("Synthesis", tr.synthesis_mode)
+        tbl.add_row("Final model", tr.final_model)
+        tbl.add_row("Escalated?", "yes" if tr.escalated else "no")
+        tbl.add_row("Total latency", f"{tr.total_latency_ms} ms")
+        console.print(tbl)
+        for i, pr in enumerate(tr.proposer_results, 1):
+            console.print(f"  [{i}] {pr['model']:12} conf={pr['confidence']} "
+                          f"lat={pr['latency_ms']}ms ok={pr['ok']}")
+
+
+@app.command()
+def strategies() -> None:
+    """List available orchestration strategies (Build #017)."""
+    from monad.orchestration import STRATEGY_REGISTRY
+    tbl = Table(title="Orchestration Strategies", border_style="cyan")
+    tbl.add_column("Name", style="bold")
+    tbl.add_column("Description")
+    docs = {
+        "domain_routing": "Route to specialist by intent (fastest, cheapest)",
+        "cascade": "Try cheap model, escalate on low confidence",
+        "mixture_of_agents": "N proposers in parallel + aggregator merges",
+        "verification": "Proposer + independent verifier (best for code)",
+        "ensemble": "Parallel + majority vote (best for factual QA)",
+    }
+    for name in STRATEGY_REGISTRY:
+        tbl.add_row(name, docs.get(name, ""))
+    console.print(tbl)

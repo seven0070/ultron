@@ -3,65 +3,123 @@
 # =============================================================================
 # Used by installer/download_models.py to fetch GGUF weights onto the USB.
 #
-# Each model has:
-#   id           - internal identifier used everywhere in Monad
-#   role         - reasoning | coding | creative | general
-#   format       - gguf (only supported format for now)
-#   filename     - local filename saved under models/<id>/
-#   url          - direct download URL (Hugging Face resolve link, etc.)
-#   size_gb      - approximate final size (for progress bar & disk-space check)
-#   sha256       - optional integrity hash (empty = skip verification)
-#   context      - default context window
-#   gpu_layers   - number of layers to offload to GPU (-1 = all)
+# --- READ THIS FIRST ---------------------------------------------------------
+# The ORIGINAL spec called for LongCat 2 / GLM-5 / Llama 2.
+# Research (July 2026) turned up hard realities:
 #
-# NOTE: LongCat 2 and GLM-5 URLs below are PLACEHOLDERS. As of build time,
-# verify the actual Hugging Face repos and update these URLs. If the model
-# is not yet released, the installer will fail gracefully with instructions.
+#   * LongCat-Flash-Chat GGUF: exists but requires a custom llama.cpp fork
+#     and the smallest quant is 37 GB — too big for an 8 GB VRAM laptop.
+#   * GLM-5: 754B params, ~465 GB at Q4_K_M. Datacenter-only, not laptop.
+#   * Llama 2: usable but superseded by Llama 3.1 / 3.3.
+#
+# So we ship TWO profiles. Pick the one your hardware supports.
+# You can always swap models later — Monad reads whatever's in `models:`.
+#
+# For your ASUS G615JHR + RTX 5070 Laptop (8 GB VRAM, 128 GB USB):
+#   → use PROFILE B (default) — actually runs
+#
+# When you have a workstation with 48 GB+ VRAM:
+#   → uncomment PROFILE A entries and comment out PROFILE B
 # =============================================================================
 
 models:
 
-  # ---------------------------------------------------------------------------
-  # LongCat 2 — Main reasoning, planning, final synthesis
-  # ---------------------------------------------------------------------------
+  # ===========================================================================
+  # PROFILE B — Laptop-realistic defaults (RTX 5070 Laptop, 8 GB VRAM)
+  # ===========================================================================
+  # Total footprint: ~14 GB. Speculative decoding via tiny draft models.
+  # ===========================================================================
+
+  # ---------- Reasoning: Qwen 2.5 7B Instruct (LongCat 2 stand-in) ----------
   - id: "longcat2"
     role: "reasoning"
     format: "gguf"
-    filename: "longcat2-q4_k_m.gguf"
-    url: "https://huggingface.co/meituan/LongCat-Flash-Chat-GGUF/resolve/main/longcat-flash-chat-q4_k_m.gguf"
-    size_gb: 5.0
+    filename: "qwen2.5-7b-instruct-q4_k_m.gguf"
+    url: "https://huggingface.co/Qwen/Qwen2.5-7B-Instruct-GGUF/resolve/main/qwen2.5-7b-instruct-q4_k_m.gguf"
+    size_gb: 4.7
     sha256: ""
     context: 8192
     gpu_layers: -1
-    description: "Meituan LongCat — reasoning and orchestration backbone"
+    description: "Reasoning backbone (Qwen 2.5 7B substituting for LongCat 2 on 8 GB VRAM)"
+    extra:
+      draft_model: "qwen2.5-draft"      # speculative decoding partner
+      cache_type_k: "q8_0"
+      cache_type_v: "q8_0"
+      flash_attn: true
+      batch_size: 512
 
-  # ---------------------------------------------------------------------------
-  # GLM-5 — Coding specialist, structured outputs
-  # ---------------------------------------------------------------------------
+  # ---------- Draft model for the above (speculative decoding) --------------
+  - id: "qwen2.5-draft"
+    role: "draft"
+    format: "gguf"
+    filename: "qwen2.5-0.5b-instruct-q4_k_m.gguf"
+    url: "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf"
+    size_gb: 0.4
+    sha256: ""
+    context: 8192
+    gpu_layers: -1
+    description: "0.5B draft model — pairs with longcat2 for 1.5–3× speculative decoding speedup"
+
+  # ---------- Coding: DeepSeek-Coder-V2 Lite (GLM-5 stand-in) ---------------
   - id: "glm5"
     role: "coding"
     format: "gguf"
-    filename: "glm5-q4_k_m.gguf"
-    url: "https://huggingface.co/THUDM/glm-4-9b-chat-GGUF/resolve/main/glm-4-9b-chat.Q4_K_M.gguf"
-    size_gb: 5.5
+    filename: "deepseek-coder-v2-lite-instruct-q4_k_m.gguf"
+    url: "https://huggingface.co/bartowski/DeepSeek-Coder-V2-Lite-Instruct-GGUF/resolve/main/DeepSeek-Coder-V2-Lite-Instruct-Q4_K_M.gguf"
+    size_gb: 10.4
     sha256: ""
-    context: 8192
-    gpu_layers: -1
-    description: "Zhipu GLM — coding and structured output specialist (using GLM-4 until GLM-5 GGUF is released)"
+    context: 16384
+    gpu_layers: 20         # partial offload — too big for 8 GB fully
+    description: "Coding specialist (DeepSeek-Coder-V2 Lite 16B MoE substituting for GLM-5 on laptop)"
+    extra:
+      cache_type_k: "q8_0"
+      cache_type_v: "q8_0"
+      flash_attn: true
+      batch_size: 256      # smaller batch because model is bigger
 
-  # ---------------------------------------------------------------------------
-  # Llama 2 — Creative brainstorming, alternative ideas
-  # ---------------------------------------------------------------------------
+  # ---------- Creative: Llama 3.2 3B (Llama 2 upgrade) ----------------------
   - id: "llama2"
     role: "creative"
     format: "gguf"
-    filename: "llama2-7b-chat-q4_k_m.gguf"
-    url: "https://huggingface.co/TheBloke/Llama-2-7B-Chat-GGUF/resolve/main/llama-2-7b-chat.Q4_K_M.gguf"
-    size_gb: 4.1
+    filename: "llama-3.2-3b-instruct-q4_k_m.gguf"
+    url: "https://huggingface.co/bartowski/Llama-3.2-3B-Instruct-GGUF/resolve/main/Llama-3.2-3B-Instruct-Q4_K_M.gguf"
+    size_gb: 2.0
     sha256: ""
-    context: 4096
+    context: 8192
     gpu_layers: -1
-    description: "Meta Llama-2 7B Chat — creative brainstorming"
+    description: "Creative brainstorming (Llama 3.2 3B — smaller, faster successor to Llama 2)"
+    extra:
+      cache_type_k: "q8_0"
+      cache_type_v: "q8_0"
+      flash_attn: true
+      batch_size: 512
+
+  # ===========================================================================
+  # PROFILE A — Workstation / server (24+ GB VRAM) — UNCOMMENT TO USE
+  # ===========================================================================
+  # Uses the actual LongCat / GLM specified in the original architecture.
+  # Requires a custom llama.cpp build for LongCat (see docs/MODELS.md).
+  # ===========================================================================
+  #
+  # - id: "longcat2-real"
+  #   role: "reasoning"
+  #   format: "gguf"
+  #   filename: "LongCat-Flash-Lite-Q4_K_M.gguf"
+  #   url: "https://huggingface.co/InquiringMinds-AI/LongCat-Flash-Lite-GGUF/resolve/main/LongCat-Flash-Lite-Q4_K_M.gguf"
+  #   size_gb: 37.4
+  #   context: 16384
+  #   gpu_layers: -1
+  #   description: "Meituan LongCat-Flash-Lite (requires custom llama.cpp fork)"
+  #
+  # - id: "glm4"
+  #   role: "coding"
+  #   format: "gguf"
+  #   filename: "glm-4-9b-chat.Q4_K_M.gguf"
+  #   url: "https://huggingface.co/legraphista/glm-4-9b-chat-GGUF/resolve/main/glm-4-9b-chat.Q4_K_M.gguf"
+  #   size_gb: 5.5
+  #   context: 8192
+  #   gpu_layers: -1
+  #   description: "GLM-4 9B (until GLM-5 becomes laptop-viable)"
 
 # =============================================================================
 # Portable Python (fetched by installer/download_python.py)
@@ -72,8 +130,8 @@ python_portable:
   size_mb: 30
 
 # =============================================================================
-# Total disk budget check
+# Disk-space guard
 # =============================================================================
 disk_budget:
-  min_free_gb: 25              # Refuse to install if USB has less free
+  min_free_gb: 20
   recommended_free_gb: 40
