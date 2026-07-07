@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Monad runtime artifacts (not shipped in repo)
+logs/*
+!logs/.gitkeep
+cache/*
+!cache/.gitkeep
+workspace/*
+!workspace/.gitkeep
+memory_data/*
+!memory_data/.gitkeep
+
+# Model files — TOO BIG for GitHub. Downloaded by installer.
+models/*.gguf
+models/*.bin
+models/*.safetensors
+models/LongCat2/
+models/GLM5/
+models/Llama2/
+
+# Portable Python — installed by installer on the USB
+python_portable/
+*.zip
+
+# Secrets
+.env
+.env.local
+config.local.yaml
+
+# Build artifacts
+dist/
+build/
+*.egg

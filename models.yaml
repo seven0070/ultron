@@ -1,0 +1,79 @@
+# =============================================================================
+# Monad-Ultron — Model Download Manifest
+# =============================================================================
+# Used by installer/download_models.py to fetch GGUF weights onto the USB.
+#
+# Each model has:
+#   id           - internal identifier used everywhere in Monad
+#   role         - reasoning | coding | creative | general
+#   format       - gguf (only supported format for now)
+#   filename     - local filename saved under models/<id>/
+#   url          - direct download URL (Hugging Face resolve link, etc.)
+#   size_gb      - approximate final size (for progress bar & disk-space check)
+#   sha256       - optional integrity hash (empty = skip verification)
+#   context      - default context window
+#   gpu_layers   - number of layers to offload to GPU (-1 = all)
+#
+# NOTE: LongCat 2 and GLM-5 URLs below are PLACEHOLDERS. As of build time,
+# verify the actual Hugging Face repos and update these URLs. If the model
+# is not yet released, the installer will fail gracefully with instructions.
+# =============================================================================
+
+models:
+
+  # ---------------------------------------------------------------------------
+  # LongCat 2 — Main reasoning, planning, final synthesis
+  # ---------------------------------------------------------------------------
+  - id: "longcat2"
+    role: "reasoning"
+    format: "gguf"
+    filename: "longcat2-q4_k_m.gguf"
+    url: "https://huggingface.co/meituan/LongCat-Flash-Chat-GGUF/resolve/main/longcat-flash-chat-q4_k_m.gguf"
+    size_gb: 5.0
+    sha256: ""
+    context: 8192
+    gpu_layers: -1
+    description: "Meituan LongCat — reasoning and orchestration backbone"
+
+  # ---------------------------------------------------------------------------
+  # GLM-5 — Coding specialist, structured outputs
+  # ---------------------------------------------------------------------------
+  - id: "glm5"
+    role: "coding"
+    format: "gguf"
+    filename: "glm5-q4_k_m.gguf"
+    url: "https://huggingface.co/THUDM/glm-4-9b-chat-GGUF/resolve/main/glm-4-9b-chat.Q4_K_M.gguf"
+    size_gb: 5.5
+    sha256: ""
+    context: 8192
+    gpu_layers: -1
+    description: "Zhipu GLM — coding and structured output specialist (using GLM-4 until GLM-5 GGUF is released)"
+
+  # ---------------------------------------------------------------------------
+  # Llama 2 — Creative brainstorming, alternative ideas
+  # ---------------------------------------------------------------------------
+  - id: "llama2"
+    role: "creative"
+    format: "gguf"
+    filename: "llama2-7b-chat-q4_k_m.gguf"
+    url: "https://huggingface.co/TheBloke/Llama-2-7B-Chat-GGUF/resolve/main/llama-2-7b-chat.Q4_K_M.gguf"
+    size_gb: 4.1
+    sha256: ""
+    context: 4096
+    gpu_layers: -1
+    description: "Meta Llama-2 7B Chat — creative brainstorming"
+
+# =============================================================================
+# Portable Python (fetched by installer/download_python.py)
+# =============================================================================
+python_portable:
+  version: "3.12.4"
+  url: "https://www.python.org/ftp/python/3.12.4/python-3.12.4-embed-amd64.zip"
+  size_mb: 30
+
+# =============================================================================
+# Total disk budget check
+# =============================================================================
+disk_budget:
+  min_free_gb: 25              # Refuse to install if USB has less free
+  recommended_free_gb: 40

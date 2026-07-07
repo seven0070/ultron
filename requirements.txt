@@ -1,0 +1,23 @@
+# Core (always required)
+typer>=0.12.0
+rich>=13.7.0
+loguru>=0.7.2
+pyyaml>=6.0.1
+pydantic>=2.7.0
+psutil>=5.9.8
+
+# Inference (required to actually run models)
+# Uncomment on your USB after installing Visual C++ build tools if needed:
+# llama-cpp-python>=0.2.90
+
+# Memory / retrieval (Build #026+)
+# chromadb>=0.5.0
+# sentence-transformers>=3.0.0
+
+# API / dashboard (Build #056+)
+# fastapi>=0.111.0
+# uvicorn[standard]>=0.30.0
+
+# Dev tools (optional)
+# pytest>=8.2.0
+# ruff>=0.5.0

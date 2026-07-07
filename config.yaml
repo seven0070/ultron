@@ -1,0 +1,116 @@
+# =============================================================================
+# Monad-Ultron — Main Runtime Configuration
+# =============================================================================
+# All paths are resolved relative to the Monad installation root (USB root).
+
+application:
+  name: "Monad-Ultron"
+  codename: "Ultron"
+  version: "0.1.0"
+  environment: "production"   # production | development
+  debug: false
+
+# -----------------------------------------------------------------------------
+# Filesystem paths (relative to Monad root unless absolute)
+# -----------------------------------------------------------------------------
+paths:
+  models_dir: "models"
+  memory_dir: "memory_data"
+  workspace_dir: "workspace"
+  logs_dir: "logs"
+  cache_dir: "cache"
+  config_dir: "config"
+  plugins_dir: "monad/plugins"
+
+# -----------------------------------------------------------------------------
+# Runtime behavior
+# -----------------------------------------------------------------------------
+runtime:
+  # Default inference provider (registered in monad/inference/)
+  default_engine: "llama_cpp"
+
+  # Default model to auto-load at startup (referenced by ID from models.yaml)
+  default_model: "longcat2"
+
+  # Max concurrent loaded models (VRAM permitting)
+  max_loaded_models: 1
+
+  # Auto-detect GPU + CUDA on startup
+  auto_detect_gpu: true
+
+  # If USB drive is detected as removable, run in "portable mode"
+  # (all state stays on USB, none written to host)
+  portable_mode: true
+
+# -----------------------------------------------------------------------------
+# Logging
+# -----------------------------------------------------------------------------
+logging:
+  level: "INFO"                # DEBUG | INFO | WARNING | ERROR
+  console: true
+  file: true
+  file_rotation: "10 MB"
+  file_retention: "7 days"
+  format_compact: false
+
+# -----------------------------------------------------------------------------
+# Router / Intent classification (Build #014)
+# -----------------------------------------------------------------------------
+router:
+  strategy: "single_model"     # single_model | multi_model (Build #017+)
+  intent_classifier: "rules"   # rules | llm-based (future)
+
+# -----------------------------------------------------------------------------
+# Chat engine (Build #013)
+# -----------------------------------------------------------------------------
+chat:
+  max_history: 20
+  temperature: 0.7
+  top_p: 0.9
+  max_tokens: 2048
+  stream: true
+
+# -----------------------------------------------------------------------------
+# Memory layer (Build #026+) — stubs for now
+# -----------------------------------------------------------------------------
+memory:
+  enabled: false
+  backend: "sqlite"
+  vector_store: "chromadb"
+
+# -----------------------------------------------------------------------------
+# Policy gate (Build #056+) — all impactful actions require approval
+# -----------------------------------------------------------------------------
+policy:
+  require_approval_for:
+    - "filesystem.write"
+    - "filesystem.delete"
+    - "terminal.exec"
+    - "python.exec"
+    - "browser.navigate"
+    - "git.push"
+  approval_mode: "cli"         # cli | dashboard | auto (dev only)
+
+# -----------------------------------------------------------------------------
+# Tool framework (Build #036+)
+# -----------------------------------------------------------------------------
+tools:
+  enabled: []                  # will be populated as tools land
+  sandbox_python: true
+  sandbox_terminal: true
+
+# -----------------------------------------------------------------------------
+# Plugins
+# -----------------------------------------------------------------------------
+plugins:
+  auto_load:
+    - "health"
+    - "system_info"
+
+# -----------------------------------------------------------------------------
+# Future — API server (Build #056+)
+# -----------------------------------------------------------------------------
+api:
+  enabled: false
+  host: "127.0.0.1"
+  port: 8765
