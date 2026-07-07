@@ -45,6 +45,8 @@ Monad is built in ~120 small, testable milestones. One PR per milestone.
 | **038** | **Terminal tool** (allowlisted commands only) | ✅ **Complete** |
 | **039** | **HTTP tool** (SSRF-protected, size-capped) | ✅ **Complete** |
 | **056** | **Real PolicyGate** (allow/deny/prompt modes + SQLite audit log) | ✅ **Complete** |
+| **059** | **FastAPI server + HTML dashboard** (11 endpoints, self-contained UI) | ✅ **Complete** |
+| **070** | **Real Scheduler** (thread-based, heap-priority queue, periodic + one-shot) | ✅ **Complete** |
 | 018 | Streaming output from orchestrator | ⏳ |
 | 019 | Role-specific prompt templates | ⏳ |
 | 020 | Adaptive strategy selection (learn from usage) | ⏳ |

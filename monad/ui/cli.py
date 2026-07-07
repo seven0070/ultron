@@ -457,6 +457,23 @@ def tools() -> None:
 
 
 @app.command()
+def serve(
+    host: str = typer.Option("127.0.0.1", "--host"),
+    port: int = typer.Option(8765, "--port"),
+) -> None:
+    """Start the FastAPI dashboard + REST API (Build #059)."""
+    try:
+        from monad.api import serve as api_serve
+    except Exception as e:
+        console.print(f"[red]cannot start server: {e}[/red]")
+        raise typer.Exit(1)
+    console.print(f"[bold cyan]🧠 Monad API + dashboard[/bold cyan] "
+                  f"→ [green]http://{host}:{port}[/green]")
+    console.print("[dim]press ctrl-c to stop[/dim]")
+    api_serve(host=host, port=port, root=Path.cwd())
+
+
+@app.command()
 def memory(
     op: str = typer.Argument(..., help="remember | recall | forget | size"),
     text: str = typer.Argument("", help="Text to remember / query / forget."),

@@ -161,6 +161,8 @@ Monad is being built in **~120 small, testable milestones**.
 | **Tool framework** (Filesystem, Python sandbox, Terminal, HTTP) | **#036–#039** | ✅ **Complete** |
 | **Real policy gate** (allow/deny/prompt + SQLite audit) | **#056** | ✅ **Complete** |
 | **Cognition→Orchestrator wiring** (`monad ask --cognition`) | **#017f** | ✅ **Complete** |
+| **FastAPI + HTML dashboard** (`monad serve`) | **#059** | ✅ **Complete** |
+| **Background scheduler** (periodic + one-shot jobs) | **#070** | ✅ **Complete** |
 | Streaming, adaptive routing, caching | #018–#025 | 🚧 Stubs |
 | Memory & retrieval | #026–#035 | 🚧 Stubs |
 | Tool framework | #036–#055 | 🚧 Stubs |

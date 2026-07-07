@@ -1,5 +1,5 @@
-"""Background scheduler (Build #070+). Currently stubs."""
+"""Background scheduler — Build #070. Real thread-based job runner."""
 
-from monad.scheduler.stubs import Scheduler, Job
+from monad.scheduler.scheduler import Job, Scheduler, JobStatus
 
-__all__ = ["Scheduler", "Job"]
+__all__ = ["Job", "Scheduler", "JobStatus"]

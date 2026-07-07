@@ -1,1 +1,1 @@
-"""Build #005 — CLI + (future) dashboard UI."""
+"""User interface layer — CLI (Typer + Rich) and dashboard (FastAPI in monad/api/)."""
