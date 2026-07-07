@@ -32,6 +32,9 @@ from monad.orchestration.strategies import (
     Ensemble,
     STRATEGY_REGISTRY,
 )
+from monad.orchestration.fusion import (
+    FusionOrchestrator, FusionResult, FusionMode,
+)
 
 __all__ = [
     "ConfidenceScorer",
@@ -41,4 +44,5 @@ __all__ = [
     "OrchestrationStrategy",
     "DomainRouting", "Cascade", "MixtureOfAgents", "Verification", "Ensemble",
     "STRATEGY_REGISTRY",
+    "FusionOrchestrator", "FusionResult", "FusionMode",
 ]

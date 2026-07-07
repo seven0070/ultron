@@ -163,6 +163,7 @@ Monad is being built in **~120 small, testable milestones**.
 | **Cognition→Orchestrator wiring** (`monad ask --cognition`) | **#017f** | ✅ **Complete** |
 | **FastAPI + HTML dashboard** (`monad serve`) | **#059** | ✅ **Complete** |
 | **Background scheduler** (periodic + one-shot jobs) | **#070** | ✅ **Complete** |
+| **LLM Fusion** (all models → ONE unified answer via Chain / EnsembleTokens / Logits) | **#080** | ✅ **Complete** |
 | Streaming, adaptive routing, caching | #018–#025 | 🚧 Stubs |
 | Memory & retrieval | #026–#035 | 🚧 Stubs |
 | Tool framework | #036–#055 | 🚧 Stubs |

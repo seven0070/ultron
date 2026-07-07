@@ -529,7 +529,67 @@ def strategies() -> None:
     }
     for name in STRATEGY_REGISTRY:
         tbl.add_row(name, docs.get(name, ""))
+    tbl.add_row("[bold magenta]fuse[/bold magenta]",
+                "L2/L3/L4 fusion — all models produce ONE unified answer "
+                "(monad fuse ...)")
     console.print(tbl)
+
+
+@app.command()
+def fuse(
+    prompt: str = typer.Argument(..., help="Prompt to send to all fused models."),
+    mode: str = typer.Option("auto", "--mode", "-m",
+        help="auto | chain | ensemble | logits"),
+    max_tokens: int = typer.Option(1024, "--max-tokens", "-t"),
+    trace: bool = typer.Option(False, "--trace", help="Show fusion trace."),
+) -> None:
+    """Fuse all pool models into ONE unified answer (L2/L3/L4 fusion)."""
+    from monad.inference import InferenceManager, LlamaCppProvider
+    from monad.models import ModelManager
+    from monad.orchestration import FusionMode, FusionOrchestrator
+
+    apporch = _boot()
+    root = Path.cwd()
+
+    mm = ModelManager()
+    if len(mm.list_models()) == 0:
+        mm.load_registry(root / "models.yaml", root / "models")
+    im = InferenceManager()
+    if "llama_cpp" not in im.list():
+        im.register(LlamaCppProvider(), default=True)
+
+    cfg = apporch.config
+    pool = cfg.get("orchestration.model_pool", {}) if cfg else {}
+
+    fuser = FusionOrchestrator(inference_manager=im, model_manager=mm,
+                                model_pool=pool)
+    try:
+        mode_enum = FusionMode(mode)
+    except ValueError:
+        console.print(f"[red]unknown mode:[/red] {mode} "
+                      f"(want auto|chain|ensemble|logits)")
+        raise typer.Exit(1)
+
+    result = fuser.fuse(prompt, mode=mode_enum, max_tokens=max_tokens)
+
+    console.print(Panel(result.text or "[dim](empty)[/dim]",
+                        title=f"🧬 Fused answer ({result.mode_used})",
+                        border_style="magenta"))
+
+    if trace:
+        tbl = Table(title="Fusion Trace", border_style="cyan")
+        tbl.add_column("Field", style="bold")
+        tbl.add_column("Value")
+        tbl.add_row("Mode used", result.mode_used)
+        tbl.add_row("Models", ", ".join(result.models_used))
+        tbl.add_row("Latency", f"{result.latency_ms} ms")
+        if result.fallback_reason:
+            tbl.add_row("Fallback reason", result.fallback_reason)
+        console.print(tbl)
+        if result.trace:
+            import json as _json
+            console.print(Panel(_json.dumps(result.trace, indent=2, default=str),
+                                title="trace detail", border_style="dim"))
 
 
 # ---------------------------------------------------------------------------
