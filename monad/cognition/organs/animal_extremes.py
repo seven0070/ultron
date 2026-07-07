@@ -1,8 +1,5 @@
 """
-Animal Extreme organs — 6 total.
-
-Inspired by animal cognition/sensing extremes that outperform humans in
-specific niches.
+Animal Extreme organs — 6 total (from user's canonical spec).
 """
 
 from __future__ import annotations
@@ -12,29 +9,24 @@ from monad.cognition.organs.stub import make_stub
 
 
 ANIMAL_EXTREMES: list[tuple[str, str, str, list[str], str]] = [
-    ("distributed_pattern_matcher", "Octopus",
-     "Distributed processing — each 'arm' proposes independently, results merged.",
-     ["Pattern","Proposal"], "hybrid"),
-
-    ("echolocation_probe", "Bat",
-     "Actively probe unknown space with test-queries and integrate returns.",
-     ["Probe","Return"], "vector_only"),
-
-    ("magnetic_navigator", "Pigeon",
-     "Long-range orientation using stable-attractor cues, not turn-by-turn logic.",
-     ["Landmark","Bearing"], "graph_only"),
-
-    ("swarm_consensus", "Bee",
-     "Waggle-dance style: many weak signals aggregate into a strong direction.",
-     ["Signal","Consensus"], "hybrid"),
-
-    ("infrared_predator", "Snake",
-     "Detects hot-spots (anomalies) in otherwise cold data.",
-     ["Anomaly"], "vector_only"),
-
-    ("mimetic_learner", "Corvid",
-     "Learns tool-use by observation and rapid transfer.",
-     ["ToolUse","Imitation"], "graph_only"),
+    ("Quantum Field Perception", "Pigeon",
+     "Senses invisible fields via magnetoreception",
+     ["HiddenField", "MagneticAnomaly"], "field_perception_scan"),
+    ("Adaptive Reprogramming", "Octopus",
+     "Real-time RNA-level editing; immediate adaptation",
+     ["AdaptationEvent", "ReprogrammingSite"], "adaptive_edit_search"),
+    ("Regenerative Healing", "Axolotl",
+     "Scarless rebuilding after catastrophic drawdowns",
+     ["RecoveryPath", "RegenerationEvent"], "healing_path_trace"),
+    ("Seismic Perception", "Elephant",
+     "Detects tremors before visible movement",
+     ["TremorSignal", "EarlyWarning"], "seismic_early_detection"),
+    ("Hyperspectral Vision", "Mantis Shrimp",
+     "Sees 16+ dimensions; strikes with cavitation force",
+     ["HyperspectralDimension", "CavitationTrigger"], "hyperspectral_scan"),
+    ("Phoenix Protocol", "Immortal Jellyfish",
+     "Resets to known-good state preserving all lessons",
+     ["ResetPoint", "PreservedLesson"], "phoenix_state_retrieval"),
 ]
 
 assert len(ANIMAL_EXTREMES) == 6, f"expected 6 animal extremes, got {len(ANIMAL_EXTREMES)}"

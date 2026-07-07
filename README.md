@@ -156,6 +156,7 @@ Monad is being built in **~120 small, testable milestones**.
 | **Self-improvement framework** (self-update, self-extend, self-debug) | **#017a** | ✅ **Complete** |
 | **Multi-model orchestration** (5 strategies + confidence scoring) | **#017** | ✅ **Complete** |
 | **llama.cpp perf upgrades** (speculative decoding, KV quant, flash attn) | **#017b** | ✅ **Complete** |
+| **Cognitive architecture** (9 layers, 82 canonical organs, Cognee, MCP) | **Phases 1-6** | ✅ **Complete** |
 | Streaming, adaptive routing, caching | #018–#025 | 🚧 Stubs |
 | Memory & retrieval | #026–#035 | 🚧 Stubs |
 | Tool framework | #036–#055 | 🚧 Stubs |

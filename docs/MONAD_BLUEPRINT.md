@@ -129,16 +129,16 @@ Cognee is **optional**. If not installed, an in-memory triplet store with substr
 
 ---
 
-## 3. The 83 Organs (by category)
+## 3. The 82 Organs (canonical spec)
 
-| Category | Count | Examples |
+| Category | Count | Sample organs (from the real roster) |
 |---|---:|---|
-| **Human Geniuses** | 58 | Einstein (thought experiments), Turing (computation), Aristotle (first principles), Bach (structure), Buddha (mindful observation)… |
-| **Animal Extremes** | 6 | Octopus (distributed processing), Bat (echolocation), Bee (swarm consensus), Slime mold → wait that's microbial. Also: Pigeon, Snake, Corvid |
-| **Microbial** | 15 | Slime mold (pathfinding), Bacterial colony (population), Vibrio (quorum), CRISPR (memoir)… |
-| **Conceptual** | 4 | Reflection, Counterfactual, Dialectic, First-Principles |
+| **Human Geniuses** | 57 | Ruin Detector (Taleb), Pattern Hunger (Simons), Recursive Memory (Bellman), Entropy Pulse (Clausius), Collective Mind (von Neumann), Bandwidth Awareness (Shannon), Phase Space Navigation (Poincaré), Roughness Touch (Mandelbrot)… |
+| **Animal Extremes** | 6 | Quantum Field Perception (Pigeon), Adaptive Reprogramming (Octopus), Regenerative Healing (Axolotl), Seismic Perception (Elephant), Hyperspectral Vision (Mantis Shrimp), Phoenix Protocol (Immortal Jellyfish) |
+| **Microbial** | 15 | Precision Editing (CRISPR), Signal Amplification (Taq PCR), Extreme Resilience (D. radiodurans), Predatory Swarm Intelligence (M. xanthus), Network Optimization (Physarum polycephalum), Horizontal Gene Transfer (A. tumefaciens)… |
+| **Conceptual** | 4 | Reality Collapse Awareness (Observer Effect), Somatic Valuation (Value Function), Physical Stakes Integration (Embodied Cognition), Meta-Prompt Architecture (System Prompt Leaks) |
 
-> ⚠️ **Placeholder roster in place.** Full names/descriptions are stubs pending the user's exact 83-organ list. Registry API is stable — real names slot in without changing any code.
+**Total: 82 organs.** Every organ has its canonical `name`, `inspiration`, `description`, `node_types`, and `search_strategy` from the user's Cognitive Architecture specification (delivered `v0.5.0`).
 
 Each organ has:
 - `name` — unique ID

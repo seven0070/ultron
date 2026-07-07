@@ -16,14 +16,32 @@ from monad.cognition.self_model import SelfModel
 # 1. Organ registry
 # ---------------------------------------------------------------------------
 
-def test_register_all_produces_83_organs():
+def test_register_all_produces_82_organs():
+    """The canonical Cognitive Architecture spec defines 82 organs
+    (57 human_genius + 6 animal + 15 microbial + 4 conceptual)."""
     reg = register_all()
     counts = reg.counts()
-    assert counts["human_genius"] == 58
+    assert counts["human_genius"] == 57
     assert counts["animal_extreme"] == 6
     assert counts["microbial"] == 15
     assert counts["conceptual"] == 4
-    assert counts["total"] == 83
+    assert counts["total"] == 82
+
+
+def test_registry_has_canonical_high_stakes_organs():
+    """Executive default organ selection references these by name."""
+    reg = register_all()
+    for name in ("Ruin Detector", "Pattern Hunger", "Entropy Pulse",
+                 "Recursive Memory", "Collective Mind"):
+        assert reg.has(name), f"missing canonical organ: {name}"
+
+
+def test_registry_has_canonical_animal_organs():
+    reg = register_all()
+    for name in ("Phoenix Protocol", "Octopus", "Adaptive Reprogramming"):
+        # Names present as either name or inspiration
+        found = reg.has(name) or any(o.inspiration == name for o in reg.all())
+        assert found, f"missing canonical animal organ or inspiration: {name}"
 
 
 def test_registry_get_and_by_category():
@@ -177,7 +195,7 @@ def test_monad_think_returns_cycle_with_output():
 def test_monad_info():
     m = Monad(MonadConfig())
     info = m.info()
-    assert info["organs"]["total"] == 83
+    assert info["organs"]["total"] == 82
     assert "memory" in info
     assert "self_model" in info
 
@@ -185,7 +203,89 @@ def test_monad_info():
 def test_monad_can_export_organs_as_mcp_tools():
     m = Monad(MonadConfig(register_all_as_mcp_tools=True, max_organs_per_cycle=2))
     tools = m.mcp.list_tools()
-    assert len(tools) == 83
+    assert len(tools) == 82
     # Invoke one uniformly
     result = m.mcp.invoke(tools[0]["name"], {"prompt": "test"})
     assert "organ_name" in result
+
+
+# ---------------------------------------------------------------------------
+# 8. ModelRouter — Cognitive Architecture spec API
+# ---------------------------------------------------------------------------
+
+def test_model_router_select_sensitive_forces_local():
+    r = ModelRouter()
+    m = r.select("private data", TaskComplexity.SENSITIVE)
+    assert m.provider == "ollama"
+    assert "mistral" in m.model_id
+
+
+def test_model_router_select_code_uses_deepseek():
+    r = ModelRouter()
+    m = r.select("sort algorithm", TaskComplexity.CODE)
+    assert "deepseek" in m.model_id
+
+
+def test_model_router_prefer_local_forces_mistral(monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+    r = ModelRouter(prefer_local=True)
+    m = r.select("hard task", TaskComplexity.FRONTIER)
+    assert m.provider == "ollama"
+
+
+def test_model_router_high_stakes_organ_gets_frontier_when_cloud(monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+    r = ModelRouter()
+    m = r.select_for_organ("Ruin Detector", 0.9)
+    assert m.tier.value == "cloud_frontier"
+
+
+def test_model_router_low_stakes_organ_stays_local():
+    r = ModelRouter()
+    m = r.select_for_organ("Narrative Mastery", 0.3)
+    assert m.provider == "ollama"
+
+
+# ---------------------------------------------------------------------------
+# 9. MonadMCPServer — 3 default Monad tools
+# ---------------------------------------------------------------------------
+
+def test_monad_mcp_server_has_three_default_tools():
+    from monad.cognition.mcp import MonadMCPServer
+    m = Monad(MonadConfig(max_organs_per_cycle=1))
+    server = MonadMCPServer(monad_instance=m)
+    tool_names = {t["name"] for t in server.list_tools()}
+    assert "monad_recall" in tool_names
+    assert "monad_organ_analyze" in tool_names
+    assert "monad_self_model_query" in tool_names
+
+
+def test_monad_mcp_recall_returns_results():
+    from monad.cognition.mcp import MonadMCPServer
+    m = Monad(MonadConfig(max_organs_per_cycle=1))
+    m.memory.remember("Einstein discovered relativity.")
+    server = MonadMCPServer(monad_instance=m)
+    result = server.invoke("monad_recall", {"query": "relativity"})
+    assert result["tool"] == "monad_recall"
+    assert isinstance(result["results"], list)
+
+
+def test_monad_mcp_organ_analyze_runs_organ():
+    from monad.cognition.mcp import MonadMCPServer
+    m = Monad(MonadConfig(max_organs_per_cycle=1))
+    server = MonadMCPServer(monad_instance=m)
+    result = server.invoke("monad_organ_analyze",
+                           {"organ": "Ruin Detector", "context": "test market volatility"})
+    assert result["tool"] == "monad_organ_analyze"
+    assert result["organ"] == "Ruin Detector"
+    assert "result" in result
+
+
+def test_monad_mcp_self_model_query():
+    from monad.cognition.mcp import MonadMCPServer
+    m = Monad(MonadConfig(max_organs_per_cycle=1))
+    server = MonadMCPServer(monad_instance=m)
+    result = server.invoke("monad_self_model_query", {"question": "who am I?"})
+    assert result["tool"] == "monad_self_model_query"
+    assert "beliefs" in result
+    assert any("Monad" in b for b in result["beliefs"])

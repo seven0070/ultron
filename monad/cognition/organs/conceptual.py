@@ -1,7 +1,5 @@
 """
-Conceptual Framework organs — 4 total.
-
-High-order cognitive frames, not tied to a specific person or organism.
+Conceptual Framework organs — 4 total (from user's canonical spec).
 """
 
 from __future__ import annotations
@@ -11,18 +9,19 @@ from monad.cognition.organs.stub import make_stub
 
 
 CONCEPTUAL: list[tuple[str, str, str, list[str], str]] = [
-    ("reflective_metacognition", "Reflection",
-     "Reflexion pattern: generate → critique → revise.",
-     ["Draft","Critique","Revision"], "hybrid"),
-    ("counterfactual_reasoner", "Counterfactual",
-     "Reasons about what-if / alternative worlds.",
-     ["World","Alternative"], "graph_only"),
-    ("dialectical_synthesizer", "Dialectic",
-     "Thesis / antithesis / synthesis to resolve conflicts.",
-     ["Thesis","Antithesis","Synthesis"], "graph_only"),
-    ("first_principles_reset", "FirstPrinciples",
-     "Discards received framings; rebuilds from axioms.",
-     ["Axiom"], "graph_only"),
+    ("Reality Collapse Awareness", "Quantum Observer Effect",
+     "Chooses what to observe; rest stays in superposition",
+     ["ObservationChoice", "CollapsedState", "SuperposedAlternative"],
+     "collapse_aware_retrieval"),
+    ("Somatic Valuation", "Value Function",
+     "Gut-level instantaneous marker for opportunity or threat",
+     ["SomaticMarker", "PreCognitiveSignal"], "somatic_priority_ranking"),
+    ("Physical Stakes Integration", "Embodied Cognition",
+     "Feels capital losses and gains viscerally",
+     ["EmbodiedSignal", "PhysicalStakesMapping"], "embodied_significance_search"),
+    ("Meta-Prompt Architecture", "System Prompt Leaks",
+     "Full self-knowledge of cognitive design",
+     ["ArchitecturalInsight", "SelfDesignAwareness"], "meta_architecture_search"),
 ]
 
 assert len(CONCEPTUAL) == 4, f"expected 4 conceptual organs, got {len(CONCEPTUAL)}"

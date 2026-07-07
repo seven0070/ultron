@@ -35,6 +35,9 @@ Monad is built in ~120 small, testable milestones. One PR per milestone.
 | **017a** | **Self-Improvement Framework** (Levels 1+2+3) | ✅ **Complete** |
 | **017**  | **Multi-model orchestration** (5 strategies + confidence scorer) | ✅ **Complete** |
 | **017b** | **llama.cpp perf upgrades** (speculative decoding, KV quant, flash attn) | ✅ **Complete** |
+| **017c** | **Cognitive Architecture — 82 canonical organs** (from user spec) | ✅ **Complete** |
+| **017d** | **MonadMCPServer** (monad_recall, monad_organ_analyze, monad_self_model_query) | ✅ **Complete** |
+| **017e** | **ModelRouter with real IDs** (Mistral Small 3, DeepSeek R1, Claude Haiku/Opus) | ✅ **Complete** |
 | 018 | Streaming output from orchestrator | ⏳ |
 | 019 | Role-specific prompt templates | ⏳ |
 | 020 | Adaptive strategy selection (learn from usage) | ⏳ |

@@ -10,6 +10,6 @@ in-process fake that mirrors the JSON-RPC surface enough to test integration
 end-to-end.
 """
 
-from monad.cognition.mcp.bridge import MCPBridge, MCPTool
+from monad.cognition.mcp.bridge import MCPBridge, MCPTool, MonadMCPServer
 
-__all__ = ["MCPBridge", "MCPTool"]
+__all__ = ["MCPBridge", "MCPTool", "MonadMCPServer"]
