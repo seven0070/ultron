@@ -447,3 +447,96 @@ def strategies() -> None:
     for name in STRATEGY_REGISTRY:
         tbl.add_row(name, docs.get(name, ""))
     console.print(tbl)
+
+
+# ---------------------------------------------------------------------------
+# Cognitive architecture commands (Phase 5)
+# ---------------------------------------------------------------------------
+
+cognition = typer.Typer(help="Cognitive architecture — 83 organs, Cognee memory, Reflexion.")
+app.add_typer(cognition, name="cognition")
+
+
+@cognition.command("info")
+def cognition_info() -> None:
+    """Show cognitive architecture status."""
+    from monad.cognition import Monad, MonadConfig
+    m = Monad(MonadConfig())
+    info = m.info()
+    tbl = Table(title="🧠 Monad Cognitive Architecture", border_style="magenta")
+    tbl.add_column("Layer", style="bold")
+    tbl.add_column("Value")
+    tbl.add_row("Version", info["version"])
+    tbl.add_row("Organs (total)", str(info["organs"]["total"]))
+    tbl.add_row("  Human geniuses", str(info["organs"]["human_genius"]))
+    tbl.add_row("  Animal extremes", str(info["organs"]["animal_extreme"]))
+    tbl.add_row("  Microbial", str(info["organs"]["microbial"]))
+    tbl.add_row("  Conceptual", str(info["organs"]["conceptual"]))
+    tbl.add_row("Memory backend", info["memory"]["backend"])
+    tbl.add_row("Memory triplets", str(info["memory"]["triplets"]))
+    tbl.add_row("Self-model nodes", str(info["self_model"]["total_nodes"]))
+    tbl.add_row("MCP tools exported", str(info["mcp_tools"]))
+    tbl.add_row("Executive strategy", info["config"]["strategy"])
+    console.print(tbl)
+
+
+@cognition.command("organs")
+def cognition_organs(
+    category: str = typer.Option("", "--category", "-c",
+                                 help="human_genius | animal_extreme | microbial | conceptual"),
+) -> None:
+    """List cognitive organs, optionally filtered by category."""
+    from monad.cognition import register_all
+    from monad.cognition.organs.base import OrganCategory
+    reg = register_all()
+    if category:
+        try:
+            cat_enum = OrganCategory(category)
+        except ValueError:
+            console.print(f"[red]Unknown category:[/red] {category}")
+            raise typer.Exit(1)
+        organs = reg.list_by_category(cat_enum)
+    else:
+        organs = reg.all()
+    tbl = Table(title=f"Organs ({len(organs)})", border_style="magenta")
+    tbl.add_column("Name", style="bold")
+    tbl.add_column("Inspiration")
+    tbl.add_column("Category")
+    tbl.add_column("Search")
+    for o in organs:
+        tbl.add_row(o.name, o.inspiration, o.category.value, o.search_strategy)
+    console.print(tbl)
+
+
+@cognition.command("think")
+def cognition_think(
+    prompt: str = typer.Argument(..., help="Prompt for the cognitive pipeline."),
+    max_organs: int = typer.Option(6, "--max-organs", "-n"),
+    strategy: str = typer.Option("weighted_vote", "--strategy", "-s",
+                                 help="weighted_vote | highest_confidence"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show organ trace."),
+) -> None:
+    """Run the full 9-layer cognitive pipeline on a prompt."""
+    from monad.cognition import Monad, MonadConfig
+    m = Monad(MonadConfig(strategy=strategy, max_organs_per_cycle=max_organs))
+    cycle = m.think(prompt)
+
+    console.print(Panel(cycle.output or "[dim](no output)[/dim]",
+                        title="🧠 Monad thought", border_style="magenta"))
+
+    if verbose:
+        tbl = Table(title="Cognition Trace", border_style="cyan")
+        tbl.add_column("Layer", style="bold")
+        tbl.add_column("Value")
+        tbl.add_row("Query mode", cycle.query_mode)
+        tbl.add_row("Model tier", cycle.routing["tier"] if cycle.routing else "-")
+        tbl.add_row("Model reason", cycle.routing["reason"] if cycle.routing else "-")
+        tbl.add_row("Organs activated", str(len(cycle.activated_organs)))
+        tbl.add_row("Executive strategy", cycle.decision["strategy"] if cycle.decision else "-")
+        tbl.add_row("Confidence", f"{cycle.decision['confidence']:.2f}" if cycle.decision else "-")
+        tbl.add_row("Reflexion triggered",
+                    "yes" if (cycle.decision and cycle.decision["reflexion_triggered"]) else "no")
+        console.print(tbl)
+        for o in cycle.organ_results[:6]:
+            console.print(f"  • [dim]{o['organ']:32}[/dim] conf={o['confidence']:.2f} "
+                          f"{o['output'][:80]}")
