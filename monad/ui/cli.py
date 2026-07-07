@@ -228,6 +228,133 @@ def models() -> None:
 
 
 @app.command()
+def update(check_only: bool = typer.Option(False, "--check", help="Only check, don't pull.")) -> None:
+    """Level 1 self-improvement — pull latest Monad from git remote."""
+    from monad.evolution import SelfUpdater
+    updater = SelfUpdater(Path.cwd())
+    info = updater.check_for_updates()
+    if info.get("error"):
+        console.print(f"[red]Update check failed:[/red] {info['error']}")
+        raise typer.Exit(1)
+    console.print(f"Local:  [cyan]{info.get('local', '?')}[/cyan]")
+    console.print(f"Remote: [cyan]{info.get('remote', '?')}[/cyan]")
+    if not info["available"]:
+        console.print("[green]Already up to date.[/green]")
+        return
+    console.print(f"[yellow]{info['commits_behind']} commit(s) behind[/yellow]")
+    if check_only:
+        return
+    result = updater.apply_update()
+    if result["ok"]:
+        console.print(f"[green]✔ Updated to {result['new_version']}[/green]")
+    else:
+        console.print(f"[red]✘ Update failed:[/red] {result.get('error') or result.get('reason')}")
+
+
+evolve = typer.Typer(help="Self-improvement (Level 2/3) — propose, apply, rollback changes.")
+app.add_typer(evolve, name="evolve")
+
+
+def _build_evolution_manager(root: Path):
+    from monad.evolution import (
+        EvolutionLog, PatchProposer, SandboxRunner, RollbackManager, EvolutionManager,
+    )
+    from monad.policy import PolicyGate
+    memory_dir = root / "memory_data"
+    memory_dir.mkdir(parents=True, exist_ok=True)
+    elog = EvolutionLog(memory_dir / "evolution.db")
+    proposer = PatchProposer(root=root)
+    sandbox = SandboxRunner(root=root)
+    rollback = RollbackManager(root=root, backups_dir=memory_dir / "evolution_backups")
+    gate = PolicyGate(require_approval_for=["evolution.apply"])
+    return EvolutionManager(root, elog, proposer, sandbox, rollback, policy_gate=gate)
+
+
+@evolve.command("history")
+def evolve_history(limit: int = 20) -> None:
+    """Show recent self-improvement history."""
+    mgr = _build_evolution_manager(Path.cwd())
+    tbl = Table(title="Evolution History", border_style="cyan")
+    tbl.add_column("ID", style="bold")
+    tbl.add_column("When")
+    tbl.add_column("Type")
+    tbl.add_column("Target")
+    tbl.add_column("Outcome")
+    for r in mgr.history(limit=limit):
+        tbl.add_row(r.id, r.timestamp[:19], r.change_type.value,
+                    r.target_path, r.outcome.value)
+    console.print(tbl)
+
+
+@evolve.command("propose")
+def evolve_propose(
+    goal: str = typer.Argument(..., help="What you want Monad to change."),
+    target: str = typer.Option(..., "--target", "-t", help="File path to modify."),
+    zone: str = typer.Option("plugins", "--zone", "-z",
+                             help="plugins|tools|prompts|configs"),
+) -> None:
+    """Propose a self-improvement change (does not apply)."""
+    from monad.evolution import EvolutionZone
+    mgr = _build_evolution_manager(Path.cwd())
+    try:
+        zone_enum = EvolutionZone(zone)
+    except ValueError:
+        console.print(f"[red]Invalid zone:[/red] {zone}")
+        raise typer.Exit(1)
+    try:
+        rec, proposal = mgr.propose(goal=goal, zone=zone_enum, target_path=target)
+    except PermissionError as e:
+        console.print(f"[red]✘ Refused:[/red] {e}")
+        raise typer.Exit(1)
+    console.print(Panel(
+        f"[bold]ID:[/bold] {rec.id}\n"
+        f"[bold]Model:[/bold] {proposal.model_used}\n"
+        f"[bold]Rationale:[/bold] {proposal.rationale}\n\n"
+        f"[dim]Diff preview (first 40 lines):[/dim]\n" +
+        "\n".join(proposal.diff.splitlines()[:40]),
+        title="✎ Proposal", border_style="yellow",
+    ))
+    console.print(f"\nTo apply: [bold]monad evolve apply {rec.id}[/bold]")
+
+
+@evolve.command("apply")
+def evolve_apply(
+    record_id: str,
+    skip_tests: bool = typer.Option(False, "--skip-tests"),
+) -> None:
+    """Apply a previously-proposed change (runs tests + asks approval)."""
+    from monad.evolution import EvolutionZone
+    mgr = _build_evolution_manager(Path.cwd())
+    rec = mgr.log.get(record_id)
+    if not rec:
+        console.print(f"[red]No such record:[/red] {record_id}")
+        raise typer.Exit(1)
+    # Re-draft the proposal from the recorded goal (safer than pickling a diff)
+    console.print("[dim]Re-drafting proposal from record…[/dim]")
+    # Map recorded change_type back to a zone (best-effort)
+    zone_map = {
+        "new_plugin": EvolutionZone.PLUGINS, "patch_plugin": EvolutionZone.PLUGINS,
+        "new_tool": EvolutionZone.TOOLS,     "patch_tool": EvolutionZone.TOOLS,
+        "patch_prompt": EvolutionZone.PROMPTS,
+        "patch_config": EvolutionZone.CONFIGS,
+    }
+    zone = zone_map.get(rec.change_type.value, EvolutionZone.PLUGINS)
+    _, proposal = mgr.propose(goal=rec.goal, zone=zone, target_path=rec.target_path)
+    result = mgr.apply(rec, proposal, skip_tests=skip_tests)
+    console.print(f"Outcome: [bold]{result.outcome.value}[/bold]")
+
+
+@evolve.command("rollback")
+def evolve_rollback(record_id: str) -> None:
+    """Undo a previously-applied change."""
+    mgr = _build_evolution_manager(Path.cwd())
+    if mgr.rollback_change(record_id):
+        console.print(f"[green]✔ Rolled back {record_id}[/green]")
+    else:
+        console.print(f"[red]✘ Rollback failed[/red]")
+
+
+@app.command()
 def chat() -> None:
     """Enter interactive chat mode (single model)."""
     from monad.chat import ChatEngine

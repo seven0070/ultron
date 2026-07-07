@@ -32,6 +32,7 @@ Monad is built in ~120 small, testable milestones. One PR per milestone.
 
 | # | Name | Status |
 |---|------|--------|
+| **017a** | **Self-Improvement Framework** (Levels 1+2+3) | ✅ **Complete** |
 | 017 | Multi-model routing strategy | 🚧 stub in `router/strategy.py` |
 | 018 | Response synthesizer | ⏳ |
 | 019 | LongCat 2 integration test | ⏳ |
