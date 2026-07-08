@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monad — Portable Cognitive AI (Preview)</title>
+<style>
+:root {
+  --bg: #0a0b14;
+  --bg-soft: #111327;
+  --bg-card: #171a30;
+  --bg-hover: #1e2242;
+  --border: #252a4a;
+  --border-soft: #1e2242;
+  --text: #e6e8f5;
+  --text-soft: #a5aad0;
+  --text-muted: #666a8a;
+  --purple: #a78bfa;
+  --pink: #f472b6;
+  --blue: #60a5fa;
+  --cyan: #22d3ee;
+  --green: #34d399;
+  --amber: #fbbf24;
+  --gradient: linear-gradient(135deg, #a78bfa 0%, #f472b6 50%, #60a5fa 100%);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: var(--bg); color: var(--text); font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; -webkit-font-smoothing: antialiased; }
+body {
+  background-image:
+    radial-gradient(ellipse at top, rgba(167,139,250,0.15), transparent 60%),
+    radial-gradient(ellipse at bottom right, rgba(96,165,250,0.10), transparent 55%);
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+.glass { background: rgba(23, 26, 48, 0.6); backdrop-filter: blur(16px); border: 1px solid var(--border-soft); }
+.gradient-text { background: var(--gradient); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.btn-primary {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 18px; border-radius: 10px;
+  background: var(--gradient); color: white;
+  font-weight: 500; font-size: 14px; text-decoration: none;
+  box-shadow: 0 8px 20px rgba(167,139,250,0.25);
+  border: none; cursor: pointer; transition: opacity 0.2s;
+}
+.btn-primary:hover { opacity: 0.9; }
+.btn-outline {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 18px; border-radius: 10px;
+  background: transparent; color: var(--text-soft);
+  border: 1px solid var(--border); font-weight: 500; font-size: 14px;
+  text-decoration: none; cursor: pointer; transition: all 0.2s;
+}
+.btn-outline:hover { color: var(--text); border-color: var(--purple); }
+
+/* Nav */
+.nav { position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+       height: 64px; border-bottom: 1px solid var(--border-soft); }
+.nav-inner { max-width: 1152px; margin: 0 auto; height: 100%; padding: 0 24px;
+             display: flex; align-items: center; justify-content: space-between; }
+.nav-logo { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 18px; text-decoration: none; color: var(--text); }
+.nav-links { display: flex; gap: 32px; font-size: 14px; color: var(--text-soft); }
+.nav-links a { color: inherit; text-decoration: none; }
+.nav-links a:hover { color: var(--text); }
+
+/* Hero */
+.hero { padding: 160px 24px 96px; text-align: center; }
+.badge-live {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 4px 12px; border-radius: 999px;
+  border: 1px solid var(--border); font-size: 12px; color: var(--text-soft);
+  margin-bottom: 32px;
+}
+.badge-live .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+.hero h1 { font-size: clamp(40px, 6vw, 72px); font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; margin-bottom: 24px; }
+.hero p.lead { max-width: 640px; margin: 0 auto 40px; font-size: 18px; color: var(--text-soft); line-height: 1.6; }
+.hero-cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+/* Orb */
+.orb-wrapper { margin-top: 64px; position: relative; width: 288px; height: 288px; margin-left: auto; margin-right: auto; }
+.orb-glow, .orb-inner { position: absolute; inset: 0; border-radius: 50%; }
+.orb-glow { background: var(--gradient); opacity: 0.2; filter: blur(40px); animation: glow 3s ease-in-out infinite; }
+.orb-inner { inset: 32px; background: var(--gradient); opacity: 0.3; filter: blur(20px); animation: float 6s ease-in-out infinite; }
+@keyframes glow { 0%,100% { opacity: 0.2; } 50% { opacity: 0.4; } }
+@keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+.orb-emoji { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 96px; }
+
+/* Stats */
+.stats { padding: 64px 24px; border-top: 1px solid var(--border-soft); border-bottom: 1px solid var(--border-soft); }
+.stats-inner { max-width: 1152px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; text-align: center; }
+.stat-value { font-size: 48px; font-weight: 700; }
+.stat-value.purple { color: var(--purple); }
+.stat-value.pink { color: var(--pink); }
+.stat-value.blue { color: var(--blue); }
+.stat-value.green { color: var(--green); }
+.stat-label { font-size: 14px; color: var(--text-muted); margin-top: 4px; }
+@media (max-width: 640px) { .stats-inner { grid-template-columns: repeat(2, 1fr); } }
+
+/* Features */
+.features { padding: 96px 24px; }
+.features-header { text-align: center; margin-bottom: 64px; }
+.features-header h2 { font-size: clamp(32px, 4vw, 48px); font-weight: 700; margin-bottom: 16px; }
+.features-header p { font-size: 18px; color: var(--text-soft); max-width: 640px; margin: 0 auto; }
+.features-grid { max-width: 1152px; margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+@media (max-width: 900px) { .features-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 600px) { .features-grid { grid-template-columns: 1fr; } }
+.feature-card { padding: 24px; border-radius: 12px; transition: border-color 0.2s; }
+.feature-card:hover { border-color: rgba(167,139,250,0.5); }
+.feature-icon { width: 40px; height: 40px; border-radius: 10px; background: rgba(167,139,250,0.15);
+                display: flex; align-items: center; justify-content: center; margin-bottom: 16px; font-size: 18px; }
+.feature-card h3 { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+.feature-card p { font-size: 14px; color: var(--text-soft); line-height: 1.5; }
+
+/* Architecture */
+.arch { padding: 96px 24px; background: rgba(17,19,39,0.3); }
+.arch-header { text-align: center; margin-bottom: 48px; }
+.arch-header h2 { font-size: clamp(32px, 4vw, 48px); font-weight: 700; margin-bottom: 16px; }
+.arch-header p { font-size: 18px; color: var(--text-soft); }
+.arch-diagram { max-width: 900px; margin: 0 auto; padding: 32px; border-radius: 16px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text-soft); line-height: 1.6; overflow-x: auto; }
+
+/* CTA */
+.cta { padding: 96px 24px; text-align: center; }
+.cta h2 { font-size: clamp(32px, 4vw, 48px); font-weight: 700; margin-bottom: 24px; }
+.cta p { font-size: 18px; color: var(--text-soft); max-width: 480px; margin: 0 auto 40px; }
+
+/* Footer */
+.footer { padding: 48px 24px; border-top: 1px solid var(--border-soft); }
+.footer-inner { max-width: 1152px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+.footer-brand { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-muted); }
+.footer-brand a { color: inherit; text-decoration: none; }
+.footer-brand a:hover { color: var(--purple); }
+.footer-meta { font-size: 12px; color: var(--text-muted); }
+
+/* Preview banner */
+.preview-banner {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  background: rgba(251, 191, 36, 0.15); border-bottom: 1px solid rgba(251, 191, 36, 0.3);
+  padding: 8px 24px; text-align: center; font-size: 12px; color: var(--amber);
+}
+.preview-banner + .nav { top: 32px; }
+.preview-banner + .nav + .hero { padding-top: 192px; }
+</style>
+</head>
+<body>
+
+<div class="preview-banner">
+  📸 Static preview — this is what the Next.js landing page will look like. Run <code style="color:#fff">npm run dev</code> in webapp/ for the real interactive version.
+</div>
+
+<header class="nav glass">
+  <div class="nav-inner">
+    <a href="#" class="nav-logo">
+      <span style="font-size: 24px">🧠</span>
+      <span class="gradient-text">Monad</span>
+      <span style="font-size: 11px; color: var(--text-muted); margin-left: 4px">v0.9</span>
+    </a>
+    <nav class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#architecture">Architecture</a>
+      <a href="#">GitHub</a>
+    </nav>
+    <a href="#" class="btn-primary">
+      Launch Monad
+      <span>→</span>
+    </a>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="badge-live">
+    <span class="dot"></span>
+    154 tests passing · self-improving · offline-first
+  </div>
+  <h1>
+    The portable AI<br>
+    <span class="gradient-text">that thinks like a mind.</span>
+  </h1>
+  <p class="lead">
+    Monad is a cognitive architecture — <span style="color: var(--text)">82 specialized organs</span>,
+    multi-model fusion, and self-improvement — that runs entirely on your USB.
+    No cloud. No lock-in. Just intelligence you own.
+  </p>
+  <div class="hero-cta">
+    <a href="#" class="btn-primary" style="padding: 14px 24px; font-size: 16px;">
+      Start thinking together
+      <span>→</span>
+    </a>
+    <a href="#features" class="btn-outline" style="padding: 14px 24px; font-size: 16px;">
+      How it works
+    </a>
+  </div>
+
+  <div class="orb-wrapper">
+    <div class="orb-glow"></div>
+    <div class="orb-inner"></div>
+    <div class="orb-emoji">🧠</div>
+  </div>
+</section>
+
+<section class="stats">
+  <div class="stats-inner">
+    <div>
+      <div class="stat-value purple">82</div>
+      <div class="stat-label">Cognitive organs</div>
+    </div>
+    <div>
+      <div class="stat-value pink">9</div>
+      <div class="stat-label">Architecture layers</div>
+    </div>
+    <div>
+      <div class="stat-value blue">3+</div>
+      <div class="stat-label">LLMs fused as one</div>
+    </div>
+    <div>
+      <div class="stat-value green">100%</div>
+      <div class="stat-label">Runs offline</div>
+    </div>
+  </div>
+</section>
+
+<section class="features" id="features">
+  <div class="features-header">
+    <h2>Everything a mind should have.</h2>
+    <p>Not a wrapper. Not a chatbot. A complete cognitive OS.</p>
+  </div>
+  <div class="features-grid">
+    <div class="feature-card glass">
+      <div class="feature-icon">🧠</div>
+      <h3>82 Cognitive Organs</h3>
+      <p>Newton, Shannon, Taleb, CRISPR, octopus, slime mold — each organ contributes a specialized lens.</p>
+    </div>
+    <div class="feature-card glass">
+      <div class="feature-icon">🔗</div>
+      <h3>Multi-Model Fusion</h3>
+      <p>Three LLMs collaborate as one — sequential refinement, token voting, or true logit-level fusion.</p>
+    </div>
+    <div class="feature-card glass">
+      <div class="feature-icon">🧬</div>
+      <h3>Self-Improving</h3>
+      <p>Ask it to add a plugin, tool, or capability. It proposes, tests, and only applies with your approval.</p>
+    </div>
+    <div class="feature-card glass">
+      <div class="feature-icon">📚</div>
+      <h3>9-Layer Architecture</h3>
+      <p>Perception → Memory → Reasoning → Executive → Organs → Self-Model → Adaptation → Action.</p>
+    </div>
+    <div class="feature-card glass">
+      <div class="feature-icon">🔒</div>
+      <h3>Local-First &amp; Portable</h3>
+      <p>Everything runs on a 128 GB USB. Optional cloud tier when you want it, off when you don't.</p>
+    </div>
+    <div class="feature-card glass">
+      <div class="feature-icon">🛡️</div>
+      <h3>Approval-Gated</h3>
+      <p>Every filesystem write, tool call, and self-modification passes through a policy gate with audit trail.</p>
+    </div>
+    <div class="feature-card glass">
+      <div class="feature-icon">💾</div>
+      <h3>Real Memory</h3>
+      <p>SQLite + vector index + RRF hybrid retrieval — remembers what you talked about, forgets what you tell it to.</p>
+    </div>
+    <div class="feature-card glass">
+      <div class="feature-icon">⚡</div>
+      <h3>Speculative Decoding</h3>
+      <p>2–3× faster inference via draft models, KV cache quantization, and Flash Attention.</p>
+    </div>
+    <div class="feature-card glass">
+      <div class="feature-icon">✨</div>
+      <h3>MCP-Native</h3>
+      <p>Every organ is exposable as an MCP tool. Talks to Claude, Cursor, and any MCP-compatible client.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arch" id="architecture">
+  <div class="arch-header">
+    <h2>9 layers, <span class="gradient-text">one mind</span>.</h2>
+    <p>Every request flows through the full stack — cognition first, LLMs second.</p>
+  </div>
+  <div class="arch-diagram glass">
+<pre style="margin:0; color: inherit; font: inherit;">  ┌─────────────────────────────────────────────┐
+  │  1. Perception     normalize input           │
+  │  2. Memory         SQLite + vector + RRF     │
+  │  3. Learning       feedback &amp; reinforcement  │
+  │  4. Reasoning      model router + reflexion  │
+  │  5. Executive      weighted-vote decisions   │
+  │  6. Organs         82 specialists consulted  │
+  │  7. Self-Model     metacognition graph       │
+  │  8. Adaptation     controlled evolution      │
+  │  9. Action         tool use + output         │
+  └────────────────────┬────────────────────────┘
+                       │
+                       ▼
+              ┌────────────────────┐
+              │  Fusion Engine     │
+              │  chain·vote·logits │
+              └────────────────────┘
+                       │
+                       ▼
+              ONE unified answer</pre>
+  </div>
+</section>
+
+<section class="cta">
+  <h2>Your AI. Your USB. <span class="gradient-text">Your rules.</span></h2>
+  <p>Plug in. Chat. Ask it to learn new things, integrate new tools, evolve new plugins — Monad grows with you.</p>
+  <a href="#" class="btn-primary" style="padding: 16px 32px; font-size: 16px;">
+    Open Monad
+    <span>→</span>
+  </a>
+</section>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      🧠 Monad-Ultron · MIT · <a href="#">GitHub</a>
+    </div>
+    <div class="footer-meta">
+      Portable local AI · offline-first · self-improving · MCP-native
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

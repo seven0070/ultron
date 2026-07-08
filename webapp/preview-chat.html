@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monad — Chat</title>
+<style>
+:root {
+  /* Light-tinted dark like Gemini + ChatGPT */
+  --bg: #1a1a1e;
+  --bg-elevated: #212126;
+  --bg-hover: #2a2a30;
+  --bg-input: #2d2d33;
+  --border: #35353c;
+  --border-soft: #2a2a30;
+
+  --text: #ececf1;
+  --text-soft: #b4b4bd;
+  --text-muted: #6e6e78;
+
+  --accent: #a78bfa;
+  --accent-hover: #c4b5fd;
+  --gradient: linear-gradient(135deg, #a78bfa 0%, #f472b6 50%, #60a5fa 100%);
+
+  --success: #10a37f;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+
+  --sidebar-w: 260px;
+  --sidebar-collapsed-w: 60px;
+
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 20px;
+
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Menlo', monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+/* ────────────────────────────────────────────────────────── */
+/*  App shell                                                */
+/* ────────────────────────────────────────────────────────── */
+.app { display: flex; height: 100vh; }
+
+/* ────────────────────────────────────────────────────────── */
+/*  SIDEBAR — narrow, collapsible, ChatGPT-style             */
+/* ────────────────────────────────────────────────────────── */
+.sidebar {
+  width: var(--sidebar-w);
+  flex-shrink: 0;
+  background: var(--bg-elevated);
+  border-right: 1px solid var(--border-soft);
+  display: flex;
+  flex-direction: column;
+  transition: width 0.2s ease;
+}
+
+.sidebar-top {
+  padding: 12px;
+  display: flex; align-items: center; gap: 8px;
+}
+
+.brand {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  flex: 1;
+  font-weight: 600; font-size: 15px;
+  text-decoration: none; color: inherit;
+}
+.brand-logo {
+  width: 28px; height: 28px; border-radius: 8px;
+  background: var(--gradient);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+}
+
+.icon-btn {
+  width: 32px; height: 32px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-muted);
+  transition: background 0.15s, color 0.15s;
+}
+.icon-btn:hover { background: var(--bg-hover); color: var(--text); }
+
+.new-chat-btn {
+  margin: 4px 12px 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+  font-size: 14px; font-weight: 500;
+  transition: background 0.15s;
+}
+.new-chat-btn:hover { background: var(--border); }
+
+.sidebar-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 8px 12px;
+}
+
+.sidebar-section-label {
+  padding: 12px 12px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.chat-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  color: var(--text-soft);
+  cursor: pointer;
+  transition: background 0.12s;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.chat-item:hover { background: var(--bg-hover); color: var(--text); }
+.chat-item.active { background: var(--bg-hover); color: var(--text); }
+
+.sidebar-footer {
+  padding: 12px;
+  border-top: 1px solid var(--border-soft);
+}
+
+.user-menu {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  transition: background 0.12s;
+  cursor: pointer;
+  width: 100%;
+}
+.user-menu:hover { background: var(--bg-hover); }
+.user-avatar {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--gradient);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 600; color: white;
+  flex-shrink: 0;
+}
+.user-info { flex: 1; text-align: left; min-width: 0; }
+.user-name { font-size: 13px; font-weight: 500; color: var(--text); }
+.user-status { font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 5px; }
+.status-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--success);
+}
+
+/* ────────────────────────────────────────────────────────── */
+/*  MAIN                                                     */
+/* ────────────────────────────────────────────────────────── */
+.main {
+  flex: 1;
+  display: flex; flex-direction: column;
+  min-width: 0;
+  position: relative;
+}
+
+.main-header {
+  height: 52px;
+  padding: 0 16px;
+  display: flex; align-items: center; gap: 12px;
+  border-bottom: 1px solid var(--border-soft);
+}
+.model-selector {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 14px; font-weight: 500;
+  transition: background 0.12s;
+}
+.model-selector:hover { background: var(--bg-hover); }
+.header-spacer { flex: 1; }
+
+.mode-toggle {
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 12px; font-weight: 500;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  display: inline-flex; align-items: center; gap: 6px;
+  transition: all 0.15s;
+}
+.mode-toggle:hover { border-color: var(--text-muted); color: var(--text-soft); }
+.mode-toggle.active {
+  background: rgba(167,139,250,0.15);
+  color: var(--accent);
+  border-color: rgba(167,139,250,0.4);
+}
+
+/* ────────────────────────────────────────────────────────── */
+/*  MESSAGES                                                 */
+/* ────────────────────────────────────────────────────────── */
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 16px;
+}
+.messages-inner {
+  max-width: 768px;
+  margin: 0 auto;
+  padding: 24px 0 32px;
+}
+
+.message-group {
+  padding: 20px 0;
+}
+.message-group + .message-group { border-top: 1px solid var(--border-soft); }
+
+.message-header {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 8px;
+}
+.role-avatar {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 600;
+  flex-shrink: 0;
+}
+.role-avatar.user {
+  background: #5436da; color: white;
+}
+.role-avatar.assistant {
+  background: var(--gradient);
+}
+.role-name {
+  font-size: 14px; font-weight: 600;
+}
+
+.message-content {
+  padding-left: 38px; /* aligns with role name */
+  color: var(--text);
+  font-size: 15px; line-height: 1.65;
+}
+
+.message-content p { margin: 0.5em 0; }
+.message-content p:first-child { margin-top: 0; }
+.message-content p:last-child { margin-bottom: 0; }
+.message-content strong { font-weight: 600; }
+.message-content em { color: var(--text-soft); }
+
+.message-content ul, .message-content ol {
+  padding-left: 24px;
+  margin: 8px 0;
+}
+.message-content li { margin: 4px 0; }
+.message-content li::marker { color: var(--text-muted); }
+
+.message-content code {
+  background: var(--bg-elevated);
+  color: var(--accent);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+.message-content pre {
+  background: #0d0d10;
+  border: 1px solid var(--border-soft);
+  padding: 14px;
+  border-radius: var(--radius-sm);
+  margin: 12px 0;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.5;
+  position: relative;
+}
+.message-content pre code {
+  background: transparent;
+  color: var(--text-soft);
+  padding: 0;
+  font-size: inherit;
+}
+.code-lang {
+  position: absolute; top: 8px; right: 12px;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.message-content a {
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.15s;
+}
+.message-content a:hover { border-bottom-color: var(--accent); }
+
+.message-content blockquote {
+  border-left: 3px solid var(--accent);
+  padding-left: 16px;
+  margin: 12px 0;
+  color: var(--text-soft);
+  font-style: italic;
+}
+
+/* Message actions (hover) */
+.message-actions {
+  padding-left: 38px;
+  margin-top: 12px;
+  display: flex; gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.message-group:hover .message-actions { opacity: 1; }
+.msg-action-btn {
+  width: 28px; height: 28px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-muted);
+  transition: background 0.12s, color 0.12s;
+}
+.msg-action-btn:hover { background: var(--bg-hover); color: var(--text); }
+
+/* Trace chips (below assistant reply) */
+.trace {
+  padding-left: 38px;
+  margin-top: 8px;
+  display: flex; flex-wrap: wrap; gap: 6px;
+  font-size: 11px;
+}
+.trace-chip {
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  border: 1px solid var(--border-soft);
+  font-weight: 500;
+}
+.trace-chip.accent { color: var(--accent); border-color: rgba(167,139,250,0.3); background: rgba(167,139,250,0.1); }
+
+/* ────────────────────────────────────────────────────────── */
+/*  EMPTY STATE (like ChatGPT / Gemini)                      */
+/* ────────────────────────────────────────────────────────── */
+.empty-state {
+  height: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 40px 16px;
+  text-align: center;
+}
+.empty-orb {
+  width: 68px; height: 68px; border-radius: 20px;
+  background: var(--gradient);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 32px;
+  margin-bottom: 24px;
+  box-shadow: 0 20px 60px -20px rgba(167,139,250,0.5);
+}
+.empty-title {
+  font-size: 32px; font-weight: 600;
+  margin-bottom: 8px;
+  background: linear-gradient(180deg, #ececf1 0%, #6e6e78 100%);
+  -webkit-background-clip: text; background-clip: text;
+  color: transparent;
+}
+.empty-sub {
+  font-size: 15px;
+  color: var(--text-muted);
+  margin-bottom: 40px;
+  max-width: 480px;
+}
+.suggestion-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  width: 100%;
+  max-width: 620px;
+}
+@media (max-width: 640px) {
+  .suggestion-grid { grid-template-columns: 1fr; }
+}
+.suggestion-card {
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-soft);
+  background: var(--bg-elevated);
+  text-align: left;
+  transition: all 0.15s;
+  cursor: pointer;
+}
+.suggestion-card:hover {
+  border-color: var(--border);
+  background: var(--bg-hover);
+  transform: translateY(-1px);
+}
+.suggestion-icon {
+  width: 32px; height: 32px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 8px;
+  font-size: 16px;
+}
+.suggestion-title { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 2px; }
+.suggestion-hint { font-size: 12px; color: var(--text-muted); }
+
+/* ────────────────────────────────────────────────────────── */
+/*  COMPOSER (floating pill, like Gemini/Claude)             */
+/* ────────────────────────────────────────────────────────── */
+.composer-wrap {
+  padding: 0 16px 20px;
+  background: linear-gradient(180deg, transparent, var(--bg) 40%);
+}
+.composer {
+  max-width: 768px;
+  margin: 0 auto;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 26px;
+  padding: 8px 8px 8px 20px;
+  display: flex; align-items: flex-end; gap: 8px;
+  transition: border-color 0.15s;
+}
+.composer:focus-within { border-color: var(--accent); }
+
+.composer-input {
+  flex: 1;
+  min-height: 36px; max-height: 200px;
+  padding: 10px 0;
+  background: transparent;
+  border: none; outline: none;
+  color: var(--text); font-family: inherit; font-size: 15px;
+  line-height: 1.5;
+  resize: none;
+}
+.composer-input::placeholder { color: var(--text-muted); }
+
+.composer-tools {
+  display: flex; align-items: center; gap: 4px;
+  padding-bottom: 4px;
+}
+.tool-btn {
+  width: 34px; height: 34px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-muted);
+  transition: background 0.12s, color 0.12s;
+}
+.tool-btn:hover { background: var(--bg-hover); color: var(--text); }
+
+.send-btn {
+  width: 34px; height: 34px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--text); color: var(--bg);
+  transition: opacity 0.12s;
+}
+.send-btn:hover { opacity: 0.9; }
+.send-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.send-btn.ready { background: var(--gradient); color: white; }
+
+.composer-hint {
+  max-width: 768px;
+  margin: 8px auto 0;
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.composer-hint code {
+  font-family: var(--font-mono);
+  color: var(--text-soft);
+  padding: 0 2px;
+}
+
+/* ────────────────────────────────────────────────────────── */
+/*  Typing indicator                                         */
+/* ────────────────────────────────────────────────────────── */
+.typing {
+  padding-left: 38px;
+  display: flex; align-items: center; gap: 4px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+.typing-dots { display: flex; gap: 3px; }
+.typing-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--text-muted);
+  animation: dot-blink 1.4s infinite ease-in-out;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes dot-blink {
+  0%, 80%, 100% { opacity: 0.3; transform: scale(0.9); }
+  40% { opacity: 1; transform: scale(1); }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* Icons */
+.icon { width: 16px; height: 16px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.icon-sm { width: 14px; height: 14px; }
+.icon-lg { width: 18px; height: 18px; }
+.icon-xl { width: 20px; height: 20px; }
+
+/* Preview banner */
+.preview-banner {
+  position: absolute; top: 0; left: 0; right: 0; z-index: 100;
+  background: rgba(167,139,250,0.1);
+  border-bottom: 1px solid rgba(167,139,250,0.25);
+  padding: 6px 24px;
+  text-align: center; font-size: 11px; color: var(--accent);
+}
+.app { padding-top: 26px; }
+</style>
+</head>
+<body>
+
+<div class="preview-banner">
+  ✨ Static preview — ChatGPT/Gemini-style. Real interactive version runs via <code style="color:#fff">npm run dev</code>
+</div>
+
+<div class="app">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar">
+    <div class="sidebar-top">
+      <a href="#" class="brand">
+        <div class="brand-logo">🧠</div>
+        <span>Monad</span>
+      </a>
+      <button class="icon-btn" title="Toggle sidebar">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M9 3v18M3 6h6M3 12h6M3 18h6"/></svg>
+      </button>
+    </div>
+
+    <button class="new-chat-btn">
+      <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+      <span>New chat</span>
+      <span style="margin-left: auto; font-size: 11px; color: var(--text-muted);">⌘K</span>
+    </button>
+
+    <div class="sidebar-scroll">
+      <div class="sidebar-section-label">Today</div>
+      <div class="chat-item active">Explain black holes</div>
+      <div class="chat-item">Fusion vs. mixture of experts</div>
+      <div class="chat-item">Integrate Hy3-preview</div>
+
+      <div class="sidebar-section-label">Yesterday</div>
+      <div class="chat-item">Add time-zone plugin</div>
+      <div class="chat-item">Compare Python vs Rust</div>
+      <div class="chat-item">Learn about Cognee 1.0</div>
+
+      <div class="sidebar-section-label">Previous 7 days</div>
+      <div class="chat-item">USB portable AI architecture</div>
+      <div class="chat-item">Set up self-improvement loop</div>
+      <div class="chat-item">Memory pruning strategies</div>
+    </div>
+
+    <div class="sidebar-footer">
+      <button class="user-menu">
+        <div class="user-avatar">M</div>
+        <div class="user-info">
+          <div class="user-name">You</div>
+          <div class="user-status">
+            <span class="status-dot"></span>
+            Monad v0.9 · offline
+          </div>
+        </div>
+        <svg class="icon-sm icon" viewBox="0 0 24 24" style="color: var(--text-muted);">
+          <circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/>
+        </svg>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <main class="main">
+
+    <!-- Header -->
+    <header class="main-header">
+      <button class="model-selector">
+        <span>Monad</span>
+        <span style="color: var(--text-muted); font-weight: 400;">· 3-model fusion</span>
+        <svg class="icon-sm icon" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+
+      <div class="header-spacer"></div>
+
+      <button class="mode-toggle active">
+        <svg class="icon-sm icon" viewBox="0 0 24 24">
+          <path d="M12 2a4 4 0 00-4 4 4 4 0 00-4 4 4 4 0 00-2 3.5A4 4 0 002 17a3 3 0 003 3h14a3 3 0 003-3 4 4 0 000-3.5A4 4 0 0020 10a4 4 0 00-4-4 4 4 0 00-4-4z"/>
+        </svg>
+        Cognition
+      </button>
+      <button class="mode-toggle">
+        <svg class="icon-sm icon" viewBox="0 0 24 24"><polygon points="12,2 15,9 22,10 17,15 18,22 12,19 6,22 7,15 2,10 9,9"/></svg>
+        Fusion
+      </button>
+      <button class="icon-btn" title="Share">
+        <svg class="icon icon-lg" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"/></svg>
+      </button>
+    </header>
+
+    <!-- Messages -->
+    <div class="messages">
+      <div class="messages-inner">
+
+        <!-- User message -->
+        <div class="message-group">
+          <div class="message-header">
+            <div class="role-avatar user">M</div>
+            <div class="role-name">You</div>
+          </div>
+          <div class="message-content">
+            Explain how black holes work in one paragraph a 10-year-old could understand.
+          </div>
+        </div>
+
+        <!-- Assistant response -->
+        <div class="message-group">
+          <div class="message-header">
+            <div class="role-avatar assistant">🧠</div>
+            <div class="role-name">Monad</div>
+          </div>
+          <div class="message-content">
+            <p>Imagine you drop a marble on a stretchy trampoline. A tiny marble makes a little dip. Now imagine dropping a bowling ball — it makes a <em>huge</em> dip, so deep that anything rolling nearby falls in.</p>
+            <p>A <strong>black hole</strong> is like that bowling ball, but for space itself. It's a place where gravity is so strong that even light — the fastest thing in the universe — can't crawl back out once it gets too close. That's why we can't <em>see</em> a black hole directly; we only see how it bends the light around it, like a magnifying glass in space.</p>
+          </div>
+          <div class="trace">
+            <span class="trace-chip accent">✨ fused answer</span>
+            <span class="trace-chip">chain mode</span>
+            <span class="trace-chip">3 models · 4.8s</span>
+          </div>
+          <div class="message-actions">
+            <button class="msg-action-btn" title="Copy"><svg class="icon-sm icon" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg></button>
+            <button class="msg-action-btn" title="Good response"><svg class="icon-sm icon" viewBox="0 0 24 24"><path d="M7 10v12M15 5.88L14 10h5.83a2 2 0 011.92 2.56l-2.33 8A2 2 0 0117.5 22H4a2 2 0 01-2-2v-8a2 2 0 012-2h2.76a2 2 0 001.79-1.11L12 2h0a3.13 3.13 0 013 3.88z"/></svg></button>
+            <button class="msg-action-btn" title="Bad response"><svg class="icon-sm icon" viewBox="0 0 24 24"><path d="M17 14V2M9 18.12L10 14H4.17a2 2 0 01-1.92-2.56l2.33-8A2 2 0 016.5 2H20a2 2 0 012 2v8a2 2 0 01-2 2h-2.76a2 2 0 00-1.79 1.11L12 22h0a3.13 3.13 0 01-3-3.88z"/></svg></button>
+            <button class="msg-action-btn" title="Regenerate"><svg class="icon-sm icon" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg></button>
+          </div>
+        </div>
+
+        <!-- User -->
+        <div class="message-group">
+          <div class="message-header">
+            <div class="role-avatar user">M</div>
+            <div class="role-name">You</div>
+          </div>
+          <div class="message-content">
+            evolve: add a plugin that reports the current time and time zone
+          </div>
+        </div>
+
+        <!-- Assistant: evolve response with code -->
+        <div class="message-group">
+          <div class="message-header">
+            <div class="role-avatar assistant">🧠</div>
+            <div class="role-name">Monad</div>
+          </div>
+          <div class="message-content">
+            <p>🧬 <strong>Proposal drafted.</strong></p>
+            <p>I'll create <code>monad/plugins/auto_timezone.py</code> with a <code>TimeZonePlugin</code> that returns local time, UTC time, and the detected zone using Python's stdlib <code>zoneinfo</code> — no external deps.</p>
+<pre><span class="code-lang">python</span><code>from datetime import datetime
+from zoneinfo import ZoneInfo
+from monad.plugins.manager import Plugin
+
+class TimeZonePlugin(Plugin):
+    id = "time_zone"
+    name = "Time &amp; Zone"
+    description = "Reports local + UTC time and detected zone."
+
+    def on_load(self):  pass
+    def on_unload(self): pass
+
+    def now(self):
+        return {
+            "local":     datetime.now().isoformat(),
+            "utc":       datetime.utcnow().isoformat() + "Z",
+            "zone_name": str(datetime.now().astimezone().tzinfo),
+        }</code></pre>
+            <p>Ready to apply? I'll test it in the sandbox first, then ask for your approval.</p>
+            <blockquote>Reply <strong>"approve"</strong> to run tests and apply, or <strong>"cancel"</strong> to discard.</blockquote>
+          </div>
+          <div class="trace">
+            <span class="trace-chip accent">🧬 evolve</span>
+            <span class="trace-chip">glm5 · 1.2s</span>
+            <span class="trace-chip">awaiting approval</span>
+          </div>
+          <div class="message-actions">
+            <button class="msg-action-btn" title="Copy"><svg class="icon-sm icon" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg></button>
+            <button class="msg-action-btn" title="Good response"><svg class="icon-sm icon" viewBox="0 0 24 24"><path d="M7 10v12M15 5.88L14 10h5.83a2 2 0 011.92 2.56l-2.33 8A2 2 0 0117.5 22H4a2 2 0 01-2-2v-8a2 2 0 012-2h2.76a2 2 0 001.79-1.11L12 2h0a3.13 3.13 0 013 3.88z"/></svg></button>
+            <button class="msg-action-btn" title="Regenerate"><svg class="icon-sm icon" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg></button>
+          </div>
+        </div>
+
+        <!-- Typing -->
+        <div class="message-group" style="border-top: none; padding-top: 8px;">
+          <div class="typing">
+            <div class="typing-dots">
+              <div class="typing-dot"></div>
+              <div class="typing-dot"></div>
+              <div class="typing-dot"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Composer -->
+    <div class="composer-wrap">
+      <div class="composer">
+        <textarea class="composer-input" rows="1" placeholder="Message Monad…"></textarea>
+        <div class="composer-tools">
+          <button class="tool-btn" title="Attach file">
+            <svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
+          </button>
+          <button class="tool-btn" title="Voice">
+            <svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+          </button>
+          <button class="send-btn ready" title="Send">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M7 11l5-5 5 5M12 6v14"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="composer-hint">
+        Monad can make mistakes. Verify important information. Try <code>fuse</code>, <code>learn</code>, <code>evolve</code>.
+      </div>
+    </div>
+
+  </main>
+</div>
+
+</body>
+</html>

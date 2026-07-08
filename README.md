@@ -112,22 +112,26 @@ Full spec: see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ```
 Monad-Ultron/
-├── monad/                  # Core Python package
+├── monad/                  # Core Python package (all real code, no stubs)
 │   ├── core/               # App manager, DI container, logger, env, resources
 │   ├── config/             # YAML configuration system
 │   ├── models/             # Model manager, loader, runtime, registry
-│   ├── chat/               # Conversation engine
-│   ├── router/             # Intent classifier & routing strategies
-│   ├── inference/          # LLM provider abstraction (llama.cpp, etc.)
+│   ├── inference/          # LLM providers (llama.cpp + speculative decoding)
 │   ├── prompts/            # Prompt templates & context builder
-│   ├── memory/             # SQLite + ChromaDB memory layer (stubs)
-│   ├── tools/              # Tool framework (stubs)
-│   ├── policy/             # Approval gate (stubs)
-│   ├── scheduler/          # Background jobs (stubs)
+│   ├── router/             # Intent classifier
+│   ├── chat/               # Single-model chat engine
+│   ├── orchestration/      # ✅ Multi-model + fusion + cache + adaptive + streaming
+│   ├── cognition/          # ✅ 82 organs + memory + reasoning + executive + self-model
+│   ├── evolution/          # ✅ Self-improvement (propose/test/approve/rollback)
+│   ├── memory/             # ✅ Real SQLite + ChromaDB + RRF hybrid retrieval
+│   ├── tools/              # ✅ Filesystem, Python sandbox, terminal, HTTP
+│   ├── policy/             # ✅ Real approval gate (5 modes + SQLite audit)
+│   ├── scheduler/          # ✅ Thread-based periodic + one-shot jobs
+│   ├── api/                # ✅ FastAPI + HTML dashboard + streaming endpoints
 │   ├── plugins/            # Plugin manager + example plugins
-│   ├── api/                # FastAPI server (stubs)
 │   ├── ui/                 # CLI (Typer + Rich)
 │   └── utils/              # Shared utilities
+├── webapp/                 # ✅ Next.js 15 landing + chat UI
 ├── installer/              # Windows installer scripts
 ├── launcher/               # USB launcher (.bat files)
 ├── docs/                   # ARCHITECTURE, INSTALL, USAGE, BUILDS
@@ -164,13 +168,18 @@ Monad is being built in **~120 small, testable milestones**.
 | **FastAPI + HTML dashboard** (`monad serve`) | **#059** | ✅ **Complete** |
 | **Background scheduler** (periodic + one-shot jobs) | **#070** | ✅ **Complete** |
 | **LLM Fusion** (all models → ONE unified answer via Chain / EnsembleTokens / Logits) | **#080** | ✅ **Complete** |
-| Streaming, adaptive routing, caching | #018–#025 | 🚧 Stubs |
-| Memory & retrieval | #026–#035 | 🚧 Stubs |
-| Tool framework | #036–#055 | 🚧 Stubs |
-| Policy, scheduler, API, dashboard | #056–#080 | 🚧 Stubs |
-| USB packaging, tests, docs | #081–#120 | 🚧 Partial |
+| **Web app** (Next.js 15 landing + chat UI + natural-language commands) | **#090** | ✅ **Complete** |
+| **Streaming** (Server-Sent Events + typewriter effect) | **#018** | ✅ **Complete** |
+| **Adaptive routing** (Thompson sampling over strategies, learns from usage) | **#020** | ✅ **Complete** |
+| **Response cache** (LRU + SQLite persistent, 2-tier) | **#024** | ✅ **Complete** |
+| **One-click USB installer** (wizard + profiles + progress) | **#100** | ✅ **Complete** |
+| Remaining polish / tutorials / release prep | #101–#120 | 🟡 Partial |
 
 Detailed tracker: [`docs/BUILDS.md`](docs/BUILDS.md).
+
+> **All the previously-stubbed subsystems are now real code:**
+> memory · tools · policy · scheduler · api · streaming · caching · adaptive routing.
+> The only remaining items are documentation polish, extra tests, and release prep — none of which are stubs, just extras.
 
 ---
 

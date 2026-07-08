@@ -71,10 +71,15 @@ class MultiModelOrchestrator:
         model_pool: dict[str, str],
         default_strategy: str = "auto",
         max_workers: int = 3,
+        cache=None,                        # Optional ResponseCache (Build #024)
+        adaptive_router=None,              # Optional AdaptiveRouter (Build #020)
     ) -> None:
         """
         model_pool: {"reasoning": "longcat2", "coding": "glm5", "creative": "llama3"}
         default_strategy: name from STRATEGY_REGISTRY, or "auto" for per-intent selection.
+        cache: optional ResponseCache — bypasses the LLM on repeat prompts.
+        adaptive_router: optional AdaptiveRouter — replaces the static AUTO map
+                         with learned per-intent strategy selection.
         """
         self.classifier = IntentClassifier()
         self.executor = ParallelExecutor(inference_manager, model_manager, max_workers=max_workers)
@@ -82,12 +87,41 @@ class MultiModelOrchestrator:
         self.scorer = ConfidenceScorer()
         self.model_pool = {k: v for k, v in model_pool.items() if v}
         self.default_strategy = default_strategy
+        self.cache = cache
+        self.adaptive_router = adaptive_router
 
     # -- public API -----------------------------------------------------------
 
     def handle(self, request: Request, strategy_override: str = "") -> tuple[Response, OrchestrationTrace]:
         t0 = time.perf_counter()
         self._last_prompt = request.text          # used by cascade/single helpers
+
+        # Cache check FIRST — skip everything if we have a hit (Build #024)
+        cache_key = None
+        if self.cache is not None:
+            cache_key = self.cache.make_key(
+                self.default_strategy, request.text,
+                strategy_override=strategy_override,
+            )
+            hit = self.cache.get(cache_key)
+            if hit is not None:
+                trace = OrchestrationTrace(
+                    strategy=strategy_override or "cache",
+                    intent="cached",
+                    models_invoked=[hit.model_id],
+                    proposer_results=[],
+                    synthesis_mode="cache",
+                    final_model=hit.model_id,
+                    total_latency_ms=round((time.perf_counter() - t0) * 1000, 1),
+                    escalated=False,
+                )
+                resp = Response(
+                    text=hit.text, intent=Intent.UNKNOWN, model_id=hit.model_id,
+                    tokens=hit.tokens, latency_ms=hit.latency_ms,
+                    metadata={"strategy": "cache", "cache_hits": hit.hit_count,
+                              "trace": trace.__dict__},
+                )
+                return resp, trace
 
         # Optional cognition pre-pass — adds memory hits + organ hints to the prompt
         cognition_enrichment = self._cognition_enrich(request.text)
@@ -150,6 +184,29 @@ class MultiModelOrchestrator:
             latency_ms=trace.total_latency_ms,
             metadata={"strategy": strat_name, "trace": trace.__dict__},
         )
+
+        # Cache the result (Build #024)
+        if self.cache is not None and cache_key is not None and synth.text:
+            from monad.orchestration.cache import CacheEntry
+            self.cache.put(CacheEntry(
+                key=cache_key, text=synth.text,
+                model_id=trace.final_model, tokens=response.tokens,
+                latency_ms=trace.total_latency_ms,
+                metadata={"strategy": strat_name, "intent": intent.value},
+            ))
+
+        # Record outcome for adaptive routing (Build #020)
+        if self.adaptive_router is not None:
+            # "Success" = non-empty response AND (either no confidence data OR reasonable score)
+            confs = [pr for pr in trace.proposer_results if pr.get("confidence") is not None]
+            avg_conf = sum(pr["confidence"] for pr in confs) / len(confs) if confs else 0.7
+            success = bool(synth.text.strip()) and avg_conf >= 0.4
+            self.adaptive_router.record(
+                intent=intent.value, strategy=strat_name,
+                success=success, latency_ms=trace.total_latency_ms,
+                confidence=avg_conf,
+            )
+
         return response, trace
 
     # -- execution helpers ----------------------------------------------------
@@ -194,6 +251,13 @@ class MultiModelOrchestrator:
     def _select_strategy(self, intent: Intent) -> str:
         if self.default_strategy != "auto":
             return self.default_strategy
+        # Adaptive first, static map as fallback (Build #020)
+        if self.adaptive_router is not None:
+            return self.adaptive_router.select(
+                intent=intent.value,
+                allowed=list(STRATEGY_REGISTRY.keys()),
+                default=AUTO_STRATEGY_FOR_INTENT.get(intent, "domain_routing"),
+            )
         return AUTO_STRATEGY_FOR_INTENT.get(intent, "domain_routing")
 
     # -- misc -----------------------------------------------------------------

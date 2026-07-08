@@ -40,6 +40,20 @@ try:
         strategy: str = ""
         cognition: bool = False
 
+    class FuseReq(BaseModel):
+        prompt: str
+        mode: str = "auto"
+        max_tokens: int = 1024
+
+    class LearnReq(BaseModel):
+        source: str
+        kind: str = "text"      # "text" | "url" | "repo"
+
+    class EvolveProposeReq(BaseModel):
+        goal: str
+        target: str
+        zone: str = "plugins"
+
     class RememberReq(BaseModel):
         text: str
         kind: str = "note"
@@ -53,7 +67,8 @@ try:
         kwargs: dict[str, Any] = {}
 
 except ImportError:
-    AskReq = RememberReq = RecallReq = ToolInvokeReq = None  # type: ignore
+    AskReq = FuseReq = LearnReq = EvolveProposeReq = None  # type: ignore
+    RememberReq = RecallReq = ToolInvokeReq = None  # type: ignore
 
 
 def create_app(root: Path | None = None):
@@ -84,6 +99,19 @@ def create_app(root: Path | None = None):
         version=__version__,
         description=f"Portable local AI orchestration platform ({__codename__})",
     )
+
+    # CORS for the Next.js dev server (127.0.0.1:3000)
+    try:
+        from fastapi.middleware.cors import CORSMiddleware
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"],
+            allow_credentials=False,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+    except Exception:
+        pass
 
     # -- routes -------------------------------------------------------------
 
@@ -215,7 +243,251 @@ def create_app(root: Path | None = None):
             return {"audit": [], "note": "no PolicyGate wired"}
         return {"audit": gate.audit_history(limit=limit)}
 
+    # -----------------------------------------------------------------------
+    # /ask/stream — streaming version of /ask (Build #018)
+    # -----------------------------------------------------------------------
+    @app.post("/ask/stream")
+    def ask_stream(req: AskReq = Body(...)):
+        from fastapi.responses import StreamingResponse as FastAPIStreamingResponse
+        from monad.inference import InferenceManager, LlamaCppProvider
+        from monad.models import ModelManager
+        from monad.orchestration import MultiModelOrchestrator, fake_stream
+
+        mm = ModelManager()
+        if len(mm.list_models()) == 0:
+            mm.load_registry(r / "models.yaml", r / "models")
+        im = InferenceManager()
+        if "llama_cpp" not in im.list():
+            im.register(LlamaCppProvider(), default=True)
+
+        cfg = apporch.config
+        pool = cfg.get("orchestration.model_pool", {}) if cfg else {}
+        orch = MultiModelOrchestrator(
+            inference_manager=im, model_manager=mm,
+            model_pool=pool,
+            default_strategy=(cfg.get("orchestration.default_strategy", "auto")
+                              if cfg else "auto"),
+        )
+        try:
+            response, trace = orch.handle_text(req.prompt,
+                                                strategy_override=req.strategy)
+        except Exception as e:
+            def _err():
+                import json as _j
+                yield f"data: {_j.dumps({'text': f'error: {e}', 'done': True})}\n\n"
+            return FastAPIStreamingResponse(_err(), media_type="text/event-stream")
+
+        # Wrap the completed text in a typewriter stream
+        meta = {"model": response.model_id, "latency_ms": response.latency_ms,
+                "strategy": trace.strategy}
+        stream = fake_stream(response.text, chunk_size=8, delay_s=0.02,
+                              metadata_final=meta)
+        return FastAPIStreamingResponse(stream.to_sse(),
+                                          media_type="text/event-stream")
+
+    # -----------------------------------------------------------------------
+    # /cache/* — response cache mgmt (Build #024)
+    # -----------------------------------------------------------------------
+    @app.get("/cache/stats")
+    def cache_stats():
+        from monad.orchestration import ResponseCache
+        cache_path = apporch.resources.cache_dir / "response_cache.db"
+        cache = ResponseCache(db_path=cache_path)
+        stats = cache.size()
+        cache.close()
+        return stats
+
+    @app.post("/cache/clear")
+    def cache_clear():
+        from monad.orchestration import ResponseCache
+        cache_path = apporch.resources.cache_dir / "response_cache.db"
+        cache = ResponseCache(db_path=cache_path)
+        n = cache.clear()
+        cache.close()
+        return {"cleared": n}
+
+    # -----------------------------------------------------------------------
+    # /adaptive/stats — adaptive router insight (Build #020)
+    # -----------------------------------------------------------------------
+    @app.get("/adaptive/stats")
+    def adaptive_stats(intent: str = ""):
+        from monad.orchestration import AdaptiveRouter
+        router = AdaptiveRouter(
+            db_path=apporch.resources.memory_dir / "adaptive_router.db",
+        )
+        stats = router.stats(intent=intent or None)
+        router.close()
+        return {"stats": [
+            {"intent": s.intent, "strategy": s.strategy,
+             "trials": s.trials, "successes": s.successes,
+             "success_rate": round(s.success_rate, 3),
+             "avg_latency_ms": round(s.avg_latency_ms, 1),
+             "avg_confidence": round(s.avg_confidence, 3)}
+            for s in stats
+        ]}
+
+    # -----------------------------------------------------------------------
+    # /fuse — multi-model fusion (Build #080)
+    # -----------------------------------------------------------------------
+    @app.post("/fuse")
+    def fuse(req: FuseReq = Body(...)):
+        from monad.inference import InferenceManager, LlamaCppProvider
+        from monad.models import ModelManager
+        from monad.orchestration import FusionMode, FusionOrchestrator
+
+        mm = ModelManager()
+        if len(mm.list_models()) == 0:
+            mm.load_registry(r / "models.yaml", r / "models")
+        im = InferenceManager()
+        if "llama_cpp" not in im.list():
+            im.register(LlamaCppProvider(), default=True)
+
+        cfg = apporch.config
+        pool = cfg.get("orchestration.model_pool", {}) if cfg else {}
+
+        fuser = FusionOrchestrator(im, mm, pool)
+        try:
+            mode = FusionMode(req.mode)
+        except ValueError:
+            raise HTTPException(400, f"unknown mode: {req.mode}")
+        result = fuser.fuse(req.prompt, mode=mode, max_tokens=req.max_tokens)
+        return {
+            "text": result.text,
+            "mode_used": result.mode_used,
+            "models_used": result.models_used,
+            "latency_ms": result.latency_ms,
+            "fallback_reason": result.fallback_reason,
+            "trace": result.trace,
+        }
+
+    # -----------------------------------------------------------------------
+    # /learn — ingest text / url / repo into memory
+    # -----------------------------------------------------------------------
+    @app.post("/learn")
+    def learn(req: LearnReq = Body(...)):
+        source = req.source.strip()
+        if not source:
+            raise HTTPException(400, "empty source")
+
+        chunks = 0
+        summary = ""
+        next_steps = ""
+
+        if req.kind == "text":
+            # Chunk into ~800-char slices to keep events digestible
+            text = source
+            slices = [text[i:i + 800] for i in range(0, len(text), 800)]
+            for i, s in enumerate(slices):
+                memory.remember(s, kind="learned_text",
+                                tag=f"chunk-{i + 1}/{len(slices)}")
+                chunks += 1
+            summary = f"Ingested {len(text)} characters as {chunks} chunk(s)."
+
+        elif req.kind == "url":
+            # Fetch through the HTTPTool (SSRF-protected)
+            result = tools.invoke("http", url=source)
+            if not result.ok:
+                raise HTTPException(400, f"fetch failed: {result.error}")
+            text = result.output.get("text", "")[:20_000]
+            slices = [text[i:i + 800] for i in range(0, len(text), 800)]
+            for i, s in enumerate(slices):
+                memory.remember(s, kind="learned_url",
+                                tag=source[:80],
+                                metadata={"url": source, "chunk": i})
+                chunks += 1
+            summary = f"Fetched {result.output.get('bytes', 0)} bytes from {source}; ingested {chunks} chunk(s)."
+
+        elif req.kind == "repo":
+            # For repos we DON'T clone (that needs git + policy). We fetch the
+            # README via GitHub's raw endpoint as a lightweight analysis.
+            raw_url = _guess_readme_url(source)
+            summary = f"Repo detected: {source}\n\nStored the reference in memory."
+            memory.remember(f"Repo of interest: {source}",
+                            kind="repo_reference", tag="integrate")
+            chunks = 1
+            if raw_url:
+                res = tools.invoke("http", url=raw_url)
+                if res.ok:
+                    readme = res.output.get("text", "")[:8000]
+                    memory.remember(readme, kind="learned_readme",
+                                    tag=source, metadata={"source": source})
+                    chunks += 1
+                    summary += f"\n\nFetched README ({len(readme)} chars). "
+            next_steps = (
+                "- `evolve: add a Monad plugin that wraps <feature> from this repo`\n"
+                "- `recall <keyword>` to search what I learned\n"
+                f"- Clone locally, then `learn` specific files"
+            )
+        else:
+            raise HTTPException(400, f"unknown kind: {req.kind}")
+
+        return {"ok": True, "chunks": chunks, "kind": req.kind,
+                "summary": summary, "next_steps": next_steps}
+
+    # -----------------------------------------------------------------------
+    # /evolve/propose + /evolve/history
+    # -----------------------------------------------------------------------
+    @app.post("/evolve/propose")
+    def evolve_propose(req: EvolveProposeReq = Body(...)):
+        from monad.evolution import (
+            EvolutionLog, EvolutionManager, EvolutionZone,
+            PatchProposer, RollbackManager, SandboxRunner,
+        )
+        from monad.policy import PolicyGate
+        try:
+            zone = EvolutionZone(req.zone)
+        except ValueError:
+            raise HTTPException(400, f"unknown zone: {req.zone}")
+
+        memory_dir = apporch.resources.memory_dir
+        elog = EvolutionLog(memory_dir / "evolution.db")
+        mgr = EvolutionManager(
+            root=r,
+            evolution_log=elog,
+            proposer=PatchProposer(root=r),
+            sandbox=SandboxRunner(root=r),
+            rollback=RollbackManager(root=r,
+                                      backups_dir=memory_dir / "evolution_backups"),
+            policy_gate=PolicyGate(require_approval_for=["evolution.apply"]),
+        )
+        try:
+            rec, proposal = mgr.propose(goal=req.goal, zone=zone,
+                                        target_path=req.target)
+        except PermissionError as e:
+            raise HTTPException(403, str(e))
+
+        return {
+            "record_id": rec.id,
+            "target": rec.target_path,
+            "model_used": proposal.model_used,
+            "rationale": proposal.rationale,
+            "diff_preview": proposal.diff[:2000],
+            "warnings": proposal.warnings,
+        }
+
+    @app.get("/evolve/history")
+    def evolve_history(limit: int = 20):
+        from monad.evolution import EvolutionLog
+        elog = EvolutionLog(apporch.resources.memory_dir / "evolution.db")
+        recs = elog.history(limit=limit)
+        return {"records": [
+            {"id": rc.id, "timestamp": rc.timestamp,
+             "change_type": rc.change_type.value, "outcome": rc.outcome.value,
+             "target": rc.target_path, "goal": rc.goal}
+            for rc in recs
+        ]}
+
     return app
+
+
+def _guess_readme_url(repo_url: str) -> str:
+    """Guess the raw README URL from a github-ish repo url."""
+    import re
+    m = re.match(r"https?://github\.com/([^/]+)/([^/.]+)(?:\.git)?/?", repo_url)
+    if m:
+        owner, repo = m.group(1), m.group(2)
+        return f"https://raw.githubusercontent.com/{owner}/{repo}/main/README.md"
+    return ""
 
 
 def serve(host: str = "127.0.0.1", port: int = 8765,

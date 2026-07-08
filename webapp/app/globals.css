@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body {
+    background-color: theme('colors.bg.DEFAULT');
+    color: theme('colors.text.DEFAULT');
+    font-family: theme('fontFamily.sans');
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: theme('colors.accent.purple'); color: white; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: theme('colors.bg.soft'); }
+  ::-webkit-scrollbar-thumb {
+    background: theme('colors.border.DEFAULT');
+    border-radius: 5px;
+  }
+  ::-webkit-scrollbar-thumb:hover { background: theme('colors.accent.purple'); }
+}
+
+@layer components {
+  .glass {
+    background: rgba(23, 26, 48, 0.6);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid theme('colors.border.soft');
+  }
+
+  .btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200
+           inline-flex items-center gap-2 text-sm;
+  }
+  .btn-primary {
+    @apply btn bg-monad-gradient text-white hover:opacity-90
+           shadow-lg shadow-accent-purple/20;
+  }
+  .btn-ghost {
+    @apply btn text-text-soft hover:text-text-DEFAULT hover:bg-bg-hover;
+  }
+  .btn-outline {
+    @apply btn border border-border text-text-soft hover:border-accent-purple
+           hover:text-text-DEFAULT;
+  }
+
+  .gradient-text {
+    @apply bg-monad-gradient bg-clip-text text-transparent;
+  }
+}

@@ -35,6 +35,11 @@ from monad.orchestration.strategies import (
 from monad.orchestration.fusion import (
     FusionOrchestrator, FusionResult, FusionMode,
 )
+from monad.orchestration.cache import ResponseCache, CacheEntry
+from monad.orchestration.adaptive import AdaptiveRouter, StrategyStats
+from monad.orchestration.streaming import (
+    StreamingResponse, StreamChunk, real_stream, fake_stream,
+)
 
 __all__ = [
     "ConfidenceScorer",
@@ -45,4 +50,7 @@ __all__ = [
     "DomainRouting", "Cascade", "MixtureOfAgents", "Verification", "Ensemble",
     "STRATEGY_REGISTRY",
     "FusionOrchestrator", "FusionResult", "FusionMode",
+    "ResponseCache", "CacheEntry",
+    "AdaptiveRouter", "StrategyStats",
+    "StreamingResponse", "StreamChunk", "real_stream", "fake_stream",
 ]

@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monad — USB Install Sizes</title>
+<style>
+:root {
+  --bg: #1a1a1e;
+  --bg-card: #212126;
+  --bg-hover: #2a2a30;
+  --border: #35353c;
+  --text: #ececf1;
+  --text-soft: #b4b4bd;
+  --text-muted: #6e6e78;
+  --purple: #a78bfa;
+  --pink: #f472b6;
+  --blue: #60a5fa;
+  --green: #34d399;
+  --amber: #fbbf24;
+  --gradient: linear-gradient(135deg, #a78bfa 0%, #f472b6 50%, #60a5fa 100%);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  background: var(--bg); color: var(--text);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased; min-height: 100vh;
+}
+body {
+  background-image:
+    radial-gradient(ellipse at top, rgba(167,139,250,0.08), transparent 60%);
+  padding: 40px 24px;
+}
+.container { max-width: 900px; margin: 0 auto; }
+
+/* Header */
+.header { text-align: center; margin-bottom: 48px; }
+.header-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 12px; border-radius: 999px;
+  background: rgba(167,139,250,0.12); color: var(--purple);
+  border: 1px solid rgba(167,139,250,0.25);
+  font-size: 12px; font-weight: 500;
+  margin-bottom: 20px;
+}
+.header h1 {
+  font-size: clamp(32px, 5vw, 48px); font-weight: 700;
+  letter-spacing: -0.02em; margin-bottom: 12px;
+}
+.header p {
+  color: var(--text-soft); font-size: 17px; max-width: 560px;
+  margin: 0 auto; line-height: 1.6;
+}
+.gradient-text {
+  background: var(--gradient); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+
+/* USB visualization */
+.usb-viz {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 16px; padding: 32px; margin-bottom: 40px;
+}
+.usb-viz-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 24px;
+}
+.usb-label { font-size: 13px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.usb-total { font-size: 28px; font-weight: 700; }
+
+.usb-bar {
+  height: 40px; border-radius: 10px;
+  background: var(--bg-hover); overflow: hidden;
+  display: flex; position: relative;
+  border: 1px solid var(--border);
+}
+.usb-segment {
+  height: 100%;
+  transition: width 0.4s ease;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 600; color: white;
+  white-space: nowrap; overflow: hidden;
+}
+.seg-code { background: #6366f1; }
+.seg-python { background: #a78bfa; }
+.seg-deps { background: #f472b6; }
+.seg-model-1 { background: #60a5fa; }
+.seg-model-2 { background: #22d3ee; }
+.seg-model-3 { background: #34d399; }
+.seg-web { background: #fbbf24; color: #1a1a1e; }
+.seg-buffer { background: transparent; }
+
+.usb-legend {
+  margin-top: 20px; display: flex; flex-wrap: wrap; gap: 12px;
+  font-size: 12px; color: var(--text-soft);
+}
+.legend-item { display: flex; align-items: center; gap: 6px; }
+.legend-swatch { width: 12px; height: 12px; border-radius: 3px; }
+
+/* Profile picker */
+.profiles {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px; margin-bottom: 40px;
+}
+.profile {
+  padding: 20px; border-radius: 14px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  cursor: pointer; transition: all 0.2s;
+  text-align: left; font: inherit; color: inherit;
+}
+.profile:hover { border-color: var(--purple); transform: translateY(-2px); }
+.profile.selected {
+  border-color: var(--purple);
+  box-shadow: 0 0 0 3px rgba(167,139,250,0.15);
+  background: rgba(167,139,250,0.05);
+}
+.profile-name {
+  font-size: 15px; font-weight: 600; margin-bottom: 4px;
+  display: flex; align-items: center; gap: 6px;
+}
+.profile-star { color: var(--amber); }
+.profile-size {
+  font-size: 28px; font-weight: 700;
+  background: var(--gradient); -webkit-background-clip: text; background-clip: text; color: transparent;
+  margin-bottom: 6px; line-height: 1;
+}
+.profile-desc { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+
+/* Steps */
+.steps {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 16px; padding: 32px;
+}
+.steps h2 { font-size: 22px; margin-bottom: 24px; font-weight: 600; }
+.step-list { display: flex; flex-direction: column; gap: 16px; }
+.step {
+  display: flex; gap: 16px; align-items: flex-start;
+}
+.step-num {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--gradient); color: white;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 700; flex-shrink: 0;
+  box-shadow: 0 6px 16px rgba(167,139,250,0.3);
+}
+.step-content { flex: 1; }
+.step-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+.step-desc { font-size: 13px; color: var(--text-soft); line-height: 1.6; }
+.step-code {
+  display: inline-block; margin-top: 8px;
+  padding: 8px 14px; border-radius: 8px;
+  background: #0d0d10; border: 1px solid var(--border);
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 12px; color: var(--purple);
+}
+
+/* Terminal preview */
+.terminal {
+  margin-top: 32px;
+  background: #0a0a0d; border: 1px solid var(--border);
+  border-radius: 12px; overflow: hidden;
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 12px; line-height: 1.6;
+}
+.terminal-bar {
+  padding: 8px 14px; background: #1a1a1e;
+  display: flex; align-items: center; gap: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.terminal-dot { width: 12px; height: 12px; border-radius: 50%; }
+.dot-red { background: #ff5f56; } .dot-yel { background: #ffbd2e; } .dot-grn { background: #27c93f; }
+.terminal-title { color: var(--text-muted); font-size: 11px; margin-left: 8px; }
+.terminal-body { padding: 16px; color: #d4d4d4; white-space: pre; overflow-x: auto; }
+.term-purple { color: #a78bfa; } .term-cyan { color: #22d3ee; } .term-green { color: #34d399; }
+.term-yellow { color: #fbbf24; } .term-dim { color: #6e6e78; } .term-bold { font-weight: 700; }
+
+.preview-banner {
+  background: rgba(167,139,250,0.1);
+  border: 1px solid rgba(167,139,250,0.25);
+  border-radius: 8px; padding: 10px 16px;
+  text-align: center; font-size: 12px; color: var(--purple);
+  margin-bottom: 32px;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <div class="preview-banner">
+    📸 Static preview — this is what the installer will look like on your desktop.
+  </div>
+
+  <div class="header">
+    <span class="header-badge">
+      🧠 Monad-Ultron · v0.9
+    </span>
+    <h1>One-click USB install.<br><span class="gradient-text">Total control over size.</span></h1>
+    <p>
+      Pick a profile, plug in your USB, double-click one file.
+      Everything Monad needs — Python, dependencies, models, web UI — installed in minutes.
+    </p>
+  </div>
+
+  <!-- USB visualization -->
+  <div class="usb-viz">
+    <div class="usb-viz-header">
+      <div>
+        <div class="usb-label">Your 128 GB USB</div>
+        <div class="usb-total">120 GB free after install</div>
+      </div>
+      <div style="text-align: right;">
+        <div class="usb-label">Recommended profile</div>
+        <div class="usb-total" style="background: var(--gradient); -webkit-background-clip: text; background-clip: text; color: transparent;">8.5 GB used</div>
+      </div>
+    </div>
+    <div class="usb-bar">
+      <div class="usb-segment seg-code"    style="width: 0.6%;"  title="Code · 5 MB"></div>
+      <div class="usb-segment seg-python"  style="width: 1.5%;"  title="Portable Python · 120 MB"></div>
+      <div class="usb-segment seg-deps"    style="width: 5%;"    title="Dependencies · 600 MB">deps</div>
+      <div class="usb-segment seg-model-1" style="width: 15.5%;" title="Llama 3.2 3B · 2 GB">Llama 3B</div>
+      <div class="usb-segment seg-model-2" style="width: 3%;"    title="Qwen 0.5B · 0.4 GB"></div>
+      <div class="usb-segment seg-model-3" style="width: 37%;"   title="Qwen 2.5 7B · 4.7 GB">Qwen 7B</div>
+      <div class="usb-segment seg-web"     style="width: 4%;"    title="Web UI · 530 MB">web</div>
+      <div class="usb-segment seg-buffer"  style="width: 33.4%;"></div>
+    </div>
+    <div class="usb-legend">
+      <div class="legend-item"><div class="legend-swatch seg-code"></div>Code (5 MB)</div>
+      <div class="legend-item"><div class="legend-swatch seg-python"></div>Python (120 MB)</div>
+      <div class="legend-item"><div class="legend-swatch seg-deps"></div>Dependencies (600 MB)</div>
+      <div class="legend-item"><div class="legend-swatch seg-model-1"></div>Llama 3.2 3B (2 GB)</div>
+      <div class="legend-item"><div class="legend-swatch seg-model-2"></div>Qwen draft (0.4 GB)</div>
+      <div class="legend-item"><div class="legend-swatch seg-model-3"></div>Qwen 2.5 7B (4.7 GB)</div>
+      <div class="legend-item"><div class="legend-swatch seg-web"></div>Web UI (530 MB)</div>
+    </div>
+  </div>
+
+  <!-- Profiles -->
+  <div style="margin-bottom: 16px;">
+    <div style="font-size: 13px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">
+      Pick your profile
+    </div>
+  </div>
+
+  <div class="profiles">
+    <div class="profile">
+      <div class="profile-name">Code only</div>
+      <div class="profile-size">0.4 GB</div>
+      <div class="profile-desc">Framework + Python only. You supply GGUFs later.</div>
+    </div>
+    <div class="profile">
+      <div class="profile-name">Minimal</div>
+      <div class="profile-size">2.9 GB</div>
+      <div class="profile-desc">+ Llama 3.2 3B (creative). Chat works out of box.</div>
+    </div>
+    <div class="profile selected">
+      <div class="profile-name">Recommended <span class="profile-star">⭐</span></div>
+      <div class="profile-size">8.5 GB</div>
+      <div class="profile-desc">+ Qwen 2.5 7B (reasoning) + speculative decoding + web UI.</div>
+    </div>
+    <div class="profile">
+      <div class="profile-name">Full</div>
+      <div class="profile-size">19 GB</div>
+      <div class="profile-desc">Everything + DeepSeek-Coder-V2 Lite + ChromaDB vector memory.</div>
+    </div>
+  </div>
+
+  <!-- Steps -->
+  <div class="steps">
+    <h2>3 steps to a working USB</h2>
+    <div class="step-list">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <div class="step-title">Plug USB into your desktop</div>
+          <div class="step-desc">Any 128 GB (or bigger) USB drive. USB 3.2 recommended for install speed.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <div class="step-title">Double-click the installer</div>
+          <div class="step-desc">A wizard opens: pick your drive, pick a profile, confirm. It downloads everything with live progress bars.</div>
+          <div class="step-code">installer\install_to_usb.bat</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <div class="step-title">Eject, plug into your laptop, double-click to launch</div>
+          <div class="step-desc">Two launchers appear at the USB root. Pick your interface.</div>
+          <div class="step-code">monad-web.bat</div>
+          <span style="color: var(--text-muted); font-size: 12px; margin: 0 8px;">or</span>
+          <div class="step-code">monad.bat</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Terminal preview -->
+    <div class="terminal">
+      <div class="terminal-bar">
+        <div class="terminal-dot dot-red"></div>
+        <div class="terminal-dot dot-yel"></div>
+        <div class="terminal-dot dot-grn"></div>
+        <span class="terminal-title">installer/install_to_usb.bat</span>
+      </div>
+      <div class="terminal-body"><span class="term-purple term-bold">    🧠  Monad-Ultron — One-Click USB Install</span>
+
+  <span class="term-bold">📀 USB drives found:</span>
+
+    <span class="term-cyan">[1]</span>  <span class="term-bold">E:</span>   96.3 GB free / 128.0 GB   <span class="term-dim">██░░░░░░░░░░░░░░░░░░</span>
+    <span class="term-cyan">[2]</span>  <span class="term-bold">F:</span>   14.1 GB free /  32.0 GB   <span class="term-dim">████████████████░░░░</span>
+
+  Pick a drive [1-2]: <span class="term-green">1</span>
+
+  <span class="term-bold">📦 Install profiles:</span>
+
+    <span class="term-cyan">[1]</span>  Minimal              <span class="term-purple">~2.9 GB</span>   just Llama 3B
+    <span class="term-cyan">[2]</span>  Recommended ⭐        <span class="term-purple">~8.5 GB</span>   + Qwen + web
+    <span class="term-cyan">[3]</span>  Full                <span class="term-purple">~19.0 GB</span>   everything
+    <span class="term-cyan">[4]</span>  Code only            <span class="term-purple">~0.4 GB</span>   framework only
+
+  Pick a profile [1-4] (default 2): <span class="term-green">↵</span>
+
+  <span class="term-bold">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+    <span class="term-bold">Install summary</span>
+      <span class="term-dim">Target USB</span>    <span class="term-cyan">E:\Monad-Ultron</span>
+      <span class="term-dim">Free space</span>    96.3 GB / 128.0 GB
+      <span class="term-dim">Profile</span>       <span class="term-bold">Recommended ⭐</span>
+      <span class="term-dim">Est. size</span>     <span class="term-purple">~8.5 GB</span>
+  <span class="term-bold">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+
+  Proceed? [Y/n]: <span class="term-green">↵</span>
+
+  <span class="term-purple">▶</span> <span class="term-bold">Copying Monad codebase to USB</span>
+    <span class="term-green">✓</span> 105 files, 4.8 MB
+
+  <span class="term-purple">▶</span> <span class="term-bold">Downloading portable Python 3.12</span>
+    <span class="term-cyan">████████████████████████████████</span> 100.0%   30.0 /   30.0 MB   6.2 MB/s
+    <span class="term-green">✓</span> extracted to python_portable/
+
+  <span class="term-purple">▶</span> <span class="term-bold">Installing Python dependencies on USB</span>
+    <span class="term-green">✓</span> core dependencies installed
+
+  <span class="term-purple">▶</span> <span class="term-bold">Downloading models: llama2, longcat2, qwen2.5-draft</span>
+
+    <span class="term-cyan">◆</span> <span class="term-bold">llama2</span>   <span class="term-dim">~2.0 GB</span>
+    <span class="term-cyan">████████████████████████░░░░░░░░</span>  78.3%   1567.8 /  2000.0 MB   5.2 MB/s   ETA   1.4m
+
+    ...
+
+  <span class="term-green term-bold">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+  <span class="term-green term-bold">  ✓  Install complete!</span>
+
+      <span class="term-dim">Time</span>          8m 12s
+      <span class="term-dim">Written</span>       8.47 GB
+      <span class="term-dim">Location</span>      <span class="term-cyan">E:\Monad-Ultron</span>
+  <span class="term-green term-bold">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+
+  Eject the USB safely, plug it into your laptop, and:
+    <span class="term-bold">Double-click</span>  <span class="term-cyan">monad-web.bat</span>  <span class="term-dim">→ opens browser UI</span>
+    <span class="term-bold">Double-click</span>  <span class="term-cyan">monad.bat</span>      <span class="term-dim">→ opens CLI</span>
+</div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
